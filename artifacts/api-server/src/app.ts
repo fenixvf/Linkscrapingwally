@@ -31,8 +31,9 @@ app.use(
     origin: corsOrigins
       ? corsOrigins.split(",").map((o) => o.trim())
       : true,
-    methods: ["GET", "HEAD", "OPTIONS"],
+    methods: ["GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"],
     exposedHeaders: ["Location"],
+    credentials: true,
   }),
 );
 app.use(express.json());
