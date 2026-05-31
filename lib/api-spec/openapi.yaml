@@ -262,6 +262,106 @@ paths:
               schema:
                 $ref: "#/components/schemas/CheckAllResult"
 
+  /links/{id}/backups:
+    get:
+      operationId: listBackups
+      tags: [links]
+      summary: List backup links for a video link
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of backup links
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BackupLink"
+        "404":
+          description: Not found
+    post:
+      operationId: createBackup
+      tags: [links]
+      summary: Add a backup link
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BackupLinkInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupLink"
+        "404":
+          description: Not found
+
+  /links/{id}/backups/{backupId}:
+    patch:
+      operationId: updateBackup
+      tags: [links]
+      summary: Update a backup link
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: backupId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BackupLinkUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupLink"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteBackup
+      tags: [links]
+      summary: Delete a backup link
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: backupId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
   /links/{id}/move:
     patch:
       operationId: moveLink
@@ -350,9 +450,57 @@ components:
         description:
           type: string
 
+    BackupLink:
+      type: object
+      required: [id, videoLinkId, url, priority, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        videoLinkId:
+          type: integer
+        label:
+          type: ["string", "null"]
+        url:
+          type: string
+        priority:
+          type: integer
+        status:
+          type: string
+          enum: [active, expired, unknown]
+        lastChecked:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    BackupLinkInput:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          minLength: 1
+        label:
+          type: string
+
+    BackupLinkUpdate:
+      type: object
+      properties:
+        url:
+          type: string
+          minLength: 1
+        label:
+          type: string
+        priority:
+          type: integer
+
     VideoLink:
       type: object
-      required: [id, title, url, status, createdAt, updatedAt]
+      required: [id, title, url, status, createdAt, updatedAt, backupCount]
       properties:
         id:
           type: integer
@@ -368,6 +516,10 @@ components:
           type: ["string", "null"]
         refreshedUrl:
           type: ["string", "null"]
+        activeBackupId:
+          type: ["integer", "null"]
+        backupCount:
+          type: integer
         status:
           type: string
           enum: [active, expired, checking, unknown]

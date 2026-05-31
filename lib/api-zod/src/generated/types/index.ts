@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './backupLink';
+export * from './backupLinkInput';
+export * from './backupLinkStatus';
+export * from './backupLinkUpdate';
 export * from './checkAllResult';
 export * from './folder';
 export * from './folderInput';

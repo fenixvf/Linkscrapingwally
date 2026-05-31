@@ -31,6 +31,42 @@ export interface FolderUpdate {
   description?: string;
 }
 
+export type BackupLinkStatus = typeof BackupLinkStatus[keyof typeof BackupLinkStatus];
+
+
+export const BackupLinkStatus = {
+  active: 'active',
+  expired: 'expired',
+  unknown: 'unknown',
+} as const;
+
+export interface BackupLink {
+  id: number;
+  videoLinkId: number;
+  /** @nullable */
+  label?: string | null;
+  url: string;
+  priority: number;
+  status: BackupLinkStatus;
+  /** @nullable */
+  lastChecked?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BackupLinkInput {
+  /** @minLength 1 */
+  url: string;
+  label?: string;
+}
+
+export interface BackupLinkUpdate {
+  /** @minLength 1 */
+  url?: string;
+  label?: string;
+  priority?: number;
+}
+
 export type VideoLinkStatus = typeof VideoLinkStatus[keyof typeof VideoLinkStatus];
 
 
@@ -53,6 +89,9 @@ export interface VideoLink {
   pageUrl?: string | null;
   /** @nullable */
   refreshedUrl?: string | null;
+  /** @nullable */
+  activeBackupId?: number | null;
+  backupCount: number;
   status: VideoLinkStatus;
   /** @nullable */
   notes?: string | null;

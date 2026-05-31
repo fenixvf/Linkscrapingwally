@@ -19,6 +19,9 @@ export interface VideoLink {
   pageUrl?: string | null;
   /** @nullable */
   refreshedUrl?: string | null;
+  /** @nullable */
+  activeBackupId?: number | null;
+  backupCount: number;
   status: VideoLinkStatus;
   /** @nullable */
   notes?: string | null;

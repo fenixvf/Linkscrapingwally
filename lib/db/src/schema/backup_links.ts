@@ -1,30 +1,28 @@
 import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
-import { foldersTable } from "./folders";
+import { videoLinksTable } from "./video_links";
 
-export const videoLinksTable = pgTable("video_links", {
+export const backupLinksTable = pgTable("backup_links", {
   id: serial("id").primaryKey(),
-  folderId: integer("folder_id").references(() => foldersTable.id, { onDelete: "set null" }),
-  title: text("title").notNull(),
+  videoLinkId: integer("video_link_id")
+    .notNull()
+    .references(() => videoLinksTable.id, { onDelete: "cascade" }),
+  label: text("label"),
   url: text("url").notNull(),
-  pageUrl: text("page_url"),
-  refreshedUrl: text("refreshed_url"),
-  activeBackupId: integer("active_backup_id"),
+  priority: integer("priority").notNull().default(0),
   status: text("status").notNull().default("unknown"),
-  notes: text("notes"),
   lastChecked: timestamp("last_checked", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
-export const insertVideoLinkSchema = createInsertSchema(videoLinksTable).omit({
+export const insertBackupLinkSchema = createInsertSchema(backupLinksTable).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   lastChecked: true,
-  refreshedUrl: true,
   status: true,
 });
-export type InsertVideoLink = z.infer<typeof insertVideoLinkSchema>;
-export type VideoLink = typeof videoLinksTable.$inferSelect;
+export type InsertBackupLink = z.infer<typeof insertBackupLinkSchema>;
+export type BackupLink = typeof backupLinksTable.$inferSelect;

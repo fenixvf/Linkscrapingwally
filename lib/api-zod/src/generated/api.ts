@@ -109,6 +109,8 @@ export const ListLinksResponseItem = zod.object({
   "url": zod.string(),
   "pageUrl": zod.string().nullish(),
   "refreshedUrl": zod.string().nullish(),
+  "activeBackupId": zod.number().nullish(),
+  "backupCount": zod.number(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
   "lastChecked": zod.coerce.date().nullish(),
@@ -149,6 +151,8 @@ export const GetLinkResponse = zod.object({
   "url": zod.string(),
   "pageUrl": zod.string().nullish(),
   "refreshedUrl": zod.string().nullish(),
+  "activeBackupId": zod.number().nullish(),
+  "backupCount": zod.number(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
   "lastChecked": zod.coerce.date().nullish(),
@@ -183,6 +187,8 @@ export const UpdateLinkResponse = zod.object({
   "url": zod.string(),
   "pageUrl": zod.string().nullish(),
   "refreshedUrl": zod.string().nullish(),
+  "activeBackupId": zod.number().nullish(),
+  "backupCount": zod.number(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
   "lastChecked": zod.coerce.date().nullish(),
@@ -214,6 +220,8 @@ export const CheckLinkResponse = zod.object({
   "url": zod.string(),
   "pageUrl": zod.string().nullish(),
   "refreshedUrl": zod.string().nullish(),
+  "activeBackupId": zod.number().nullish(),
+  "backupCount": zod.number(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
   "lastChecked": zod.coerce.date().nullish(),
@@ -231,6 +239,82 @@ export const CheckAllLinksResponse = zod.object({
   "active": zod.number(),
   "expired": zod.number(),
   "failed": zod.number()
+})
+
+
+/**
+ * @summary List backup links for a video link
+ */
+export const ListBackupsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListBackupsResponseItem = zod.object({
+  "id": zod.number(),
+  "videoLinkId": zod.number(),
+  "label": zod.string().nullish(),
+  "url": zod.string(),
+  "priority": zod.number(),
+  "status": zod.enum(['active', 'expired', 'unknown']),
+  "lastChecked": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListBackupsResponse = zod.array(ListBackupsResponseItem)
+
+
+/**
+ * @summary Add a backup link
+ */
+export const CreateBackupParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+export const CreateBackupBody = zod.object({
+  "url": zod.string().min(1),
+  "label": zod.string().optional()
+})
+
+
+/**
+ * @summary Update a backup link
+ */
+export const UpdateBackupParams = zod.object({
+  "id": zod.coerce.number(),
+  "backupId": zod.coerce.number()
+})
+
+
+
+
+export const UpdateBackupBody = zod.object({
+  "url": zod.string().min(1).optional(),
+  "label": zod.string().optional(),
+  "priority": zod.number().optional()
+})
+
+export const UpdateBackupResponse = zod.object({
+  "id": zod.number(),
+  "videoLinkId": zod.number(),
+  "label": zod.string().nullish(),
+  "url": zod.string(),
+  "priority": zod.number(),
+  "status": zod.enum(['active', 'expired', 'unknown']),
+  "lastChecked": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a backup link
+ */
+export const DeleteBackupParams = zod.object({
+  "id": zod.coerce.number(),
+  "backupId": zod.coerce.number()
 })
 
 
@@ -253,6 +337,8 @@ export const MoveLinkResponse = zod.object({
   "url": zod.string(),
   "pageUrl": zod.string().nullish(),
   "refreshedUrl": zod.string().nullish(),
+  "activeBackupId": zod.number().nullish(),
+  "backupCount": zod.number(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
   "lastChecked": zod.coerce.date().nullish(),

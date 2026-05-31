@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and, isNull } from "drizzle-orm";
-import { db, videoLinksTable, foldersTable } from "@workspace/db";
+import { eq, and, sql, asc } from "drizzle-orm";
+import { db, videoLinksTable, foldersTable, backupLinksTable } from "@workspace/db";
 import {
   ListLinksQueryParams,
   CreateLinkBody,
@@ -19,8 +19,13 @@ import {
   CheckAllLinksResponse,
 } from "@workspace/api-zod";
 import { checkVideoUrl } from "../lib/linkChecker";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
 async function getLinkWithFolder(id: number) {
   const rows = await db
@@ -32,17 +37,71 @@ async function getLinkWithFolder(id: number) {
       url: videoLinksTable.url,
       pageUrl: videoLinksTable.pageUrl,
       refreshedUrl: videoLinksTable.refreshedUrl,
+      activeBackupId: videoLinksTable.activeBackupId,
       status: videoLinksTable.status,
       notes: videoLinksTable.notes,
       lastChecked: videoLinksTable.lastChecked,
       createdAt: videoLinksTable.createdAt,
       updatedAt: videoLinksTable.updatedAt,
+      backupCount: sql<number>`(
+        select count(*)::int from backup_links where video_link_id = ${videoLinksTable.id}
+      )`,
     })
     .from(videoLinksTable)
     .leftJoin(foldersTable, eq(foldersTable.id, videoLinksTable.folderId))
     .where(eq(videoLinksTable.id, id));
   return rows[0] ?? null;
 }
+
+/**
+ * Checks primary URL, then falls back through backups in priority order.
+ * Returns the first working URL and which backupId was used (null = primary).
+ */
+async function checkWithFallback(linkId: number, primaryUrl: string, pageUrl: string | null | undefined): Promise<{
+  status: "active" | "expired" | "unknown";
+  resolvedUrl: string | null;
+  activeBackupId: number | null;
+}> {
+  // Try primary first
+  const primary = await checkVideoUrl(primaryUrl, pageUrl);
+  if (primary.status === "active") {
+    return { ...primary, activeBackupId: null };
+  }
+
+  // Primary failed — try backups in priority order
+  const backups = await db
+    .select()
+    .from(backupLinksTable)
+    .where(eq(backupLinksTable.videoLinkId, linkId))
+    .orderBy(asc(backupLinksTable.priority), asc(backupLinksTable.createdAt));
+
+  for (const backup of backups) {
+    logger.info({ backupId: backup.id, url: backup.url }, "Trying backup link");
+    const result = await checkVideoUrl(backup.url, null);
+
+    // Update the backup's own status
+    await db
+      .update(backupLinksTable)
+      .set({ status: result.status, lastChecked: new Date() })
+      .where(eq(backupLinksTable.id, backup.id));
+
+    if (result.status === "active") {
+      logger.info({ backupId: backup.id }, "Backup link is active — promoting");
+      return {
+        status: "active",
+        resolvedUrl: result.resolvedUrl ?? backup.url,
+        activeBackupId: backup.id,
+      };
+    }
+  }
+
+  // All failed
+  return { status: primary.status, resolvedUrl: primary.resolvedUrl, activeBackupId: null };
+}
+
+// ---------------------------------------------------------------------------
+// Routes
+// ---------------------------------------------------------------------------
 
 router.get("/links", async (req, res): Promise<void> => {
   const queryParams = ListLinksQueryParams.safeParse(req.query);
@@ -52,14 +111,9 @@ router.get("/links", async (req, res): Promise<void> => {
   }
 
   const { folderId, status } = queryParams.data;
-
   const conditions = [];
-  if (folderId !== undefined) {
-    conditions.push(eq(videoLinksTable.folderId, folderId));
-  }
-  if (status !== undefined) {
-    conditions.push(eq(videoLinksTable.status, status));
-  }
+  if (folderId !== undefined) conditions.push(eq(videoLinksTable.folderId, folderId));
+  if (status !== undefined) conditions.push(eq(videoLinksTable.status, status));
 
   const rows = await db
     .select({
@@ -70,11 +124,15 @@ router.get("/links", async (req, res): Promise<void> => {
       url: videoLinksTable.url,
       pageUrl: videoLinksTable.pageUrl,
       refreshedUrl: videoLinksTable.refreshedUrl,
+      activeBackupId: videoLinksTable.activeBackupId,
       status: videoLinksTable.status,
       notes: videoLinksTable.notes,
       lastChecked: videoLinksTable.lastChecked,
       createdAt: videoLinksTable.createdAt,
       updatedAt: videoLinksTable.updatedAt,
+      backupCount: sql<number>`(
+        select count(*)::int from backup_links where video_link_id = ${videoLinksTable.id}
+      )`,
     })
     .from(videoLinksTable)
     .leftJoin(foldersTable, eq(foldersTable.id, videoLinksTable.folderId))
@@ -116,12 +174,13 @@ router.post("/links/check-all", async (req, res): Promise<void> => {
 
   for (const link of links) {
     try {
-      const result = await checkVideoUrl(link.url, link.pageUrl);
+      const result = await checkWithFallback(link.id, link.url, link.pageUrl);
       await db
         .update(videoLinksTable)
         .set({
           status: result.status,
           refreshedUrl: result.resolvedUrl ?? link.refreshedUrl,
+          activeBackupId: result.activeBackupId,
           lastChecked: new Date(),
         })
         .where(eq(videoLinksTable.id, link.id));
@@ -134,15 +193,7 @@ router.post("/links/check-all", async (req, res): Promise<void> => {
     }
   }
 
-  res.json(
-    CheckAllLinksResponse.parse({
-      total: links.length,
-      checked: links.length,
-      active,
-      expired,
-      failed,
-    }),
-  );
+  res.json(CheckAllLinksResponse.parse({ total: links.length, checked: links.length, active, expired, failed }));
 });
 
 router.get("/links/:id", async (req, res): Promise<void> => {
@@ -229,19 +280,19 @@ router.post("/links/:id/check", async (req, res): Promise<void> => {
     return;
   }
 
-  const result = await checkVideoUrl(existing.url, existing.pageUrl);
+  const result = await checkWithFallback(params.data.id, existing.url, existing.pageUrl);
 
-  const [updated] = await db
+  await db
     .update(videoLinksTable)
     .set({
       status: result.status,
       refreshedUrl: result.resolvedUrl ?? existing.refreshedUrl,
+      activeBackupId: result.activeBackupId,
       lastChecked: new Date(),
     })
-    .where(eq(videoLinksTable.id, params.data.id))
-    .returning();
+    .where(eq(videoLinksTable.id, params.data.id));
 
-  const full = await getLinkWithFolder(updated.id);
+  const full = await getLinkWithFolder(params.data.id);
   res.json(CheckLinkResponse.parse(full));
 });
 

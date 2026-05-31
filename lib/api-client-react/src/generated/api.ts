@@ -20,6 +20,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  BackupLink,
+  BackupLinkInput,
+  BackupLinkUpdate,
   CheckAllResult,
   Folder,
   FolderInput,
@@ -1002,6 +1005,301 @@ export const useCheckAllLinks = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCheckAllLinksMutationOptions(options));
+    }
+
+export const getListBackupsUrl = (id: number,) => {
+
+
+
+
+  return `/api/links/${id}/backups`
+}
+
+/**
+ * @summary List backup links for a video link
+ */
+export const listBackups = async (id: number, options?: RequestInit): Promise<BackupLink[]> => {
+
+  return customFetch<BackupLink[]>(getListBackupsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListBackupsQueryKey = (id: number,) => {
+    return [
+    `/api/links/${id}/backups`
+    ] as const;
+    }
+
+
+export const getListBackupsQueryOptions = <TData = Awaited<ReturnType<typeof listBackups>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBackups>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListBackupsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listBackups>>> = ({ signal }) => listBackups(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listBackups>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListBackupsQueryResult = NonNullable<Awaited<ReturnType<typeof listBackups>>>
+export type ListBackupsQueryError = ErrorType<void>
+
+
+/**
+ * @summary List backup links for a video link
+ */
+
+export function useListBackups<TData = Awaited<ReturnType<typeof listBackups>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listBackups>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListBackupsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateBackupUrl = (id: number,) => {
+
+
+
+
+  return `/api/links/${id}/backups`
+}
+
+/**
+ * @summary Add a backup link
+ */
+export const createBackup = async (id: number,
+    backupLinkInput: BackupLinkInput, options?: RequestInit): Promise<BackupLink> => {
+
+  return customFetch<BackupLink>(getCreateBackupUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      backupLinkInput,)
+  }
+);}
+
+
+
+
+export const getCreateBackupMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBackup>>, TError,{id: number;data: BodyType<BackupLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createBackup>>, TError,{id: number;data: BodyType<BackupLinkInput>}, TContext> => {
+
+const mutationKey = ['createBackup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createBackup>>, {id: number;data: BodyType<BackupLinkInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  createBackup(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateBackupMutationResult = NonNullable<Awaited<ReturnType<typeof createBackup>>>
+    export type CreateBackupMutationBody = BodyType<BackupLinkInput>
+    export type CreateBackupMutationError = ErrorType<void>
+
+    /**
+ * @summary Add a backup link
+ */
+export const useCreateBackup = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createBackup>>, TError,{id: number;data: BodyType<BackupLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createBackup>>,
+        TError,
+        {id: number;data: BodyType<BackupLinkInput>},
+        TContext
+      > => {
+      return useMutation(getCreateBackupMutationOptions(options));
+    }
+
+export const getUpdateBackupUrl = (id: number,
+    backupId: number,) => {
+
+
+
+
+  return `/api/links/${id}/backups/${backupId}`
+}
+
+/**
+ * @summary Update a backup link
+ */
+export const updateBackup = async (id: number,
+    backupId: number,
+    backupLinkUpdate: BackupLinkUpdate, options?: RequestInit): Promise<BackupLink> => {
+
+  return customFetch<BackupLink>(getUpdateBackupUrl(id,backupId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      backupLinkUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateBackupMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBackup>>, TError,{id: number;backupId: number;data: BodyType<BackupLinkUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBackup>>, TError,{id: number;backupId: number;data: BodyType<BackupLinkUpdate>}, TContext> => {
+
+const mutationKey = ['updateBackup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBackup>>, {id: number;backupId: number;data: BodyType<BackupLinkUpdate>}> = (props) => {
+          const {id,backupId,data} = props ?? {};
+
+          return  updateBackup(id,backupId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBackupMutationResult = NonNullable<Awaited<ReturnType<typeof updateBackup>>>
+    export type UpdateBackupMutationBody = BodyType<BackupLinkUpdate>
+    export type UpdateBackupMutationError = ErrorType<void>
+
+    /**
+ * @summary Update a backup link
+ */
+export const useUpdateBackup = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBackup>>, TError,{id: number;backupId: number;data: BodyType<BackupLinkUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBackup>>,
+        TError,
+        {id: number;backupId: number;data: BodyType<BackupLinkUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateBackupMutationOptions(options));
+    }
+
+export const getDeleteBackupUrl = (id: number,
+    backupId: number,) => {
+
+
+
+
+  return `/api/links/${id}/backups/${backupId}`
+}
+
+/**
+ * @summary Delete a backup link
+ */
+export const deleteBackup = async (id: number,
+    backupId: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteBackupUrl(id,backupId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteBackupMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBackup>>, TError,{id: number;backupId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteBackup>>, TError,{id: number;backupId: number}, TContext> => {
+
+const mutationKey = ['deleteBackup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteBackup>>, {id: number;backupId: number}> = (props) => {
+          const {id,backupId} = props ?? {};
+
+          return  deleteBackup(id,backupId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteBackupMutationResult = NonNullable<Awaited<ReturnType<typeof deleteBackup>>>
+
+    export type DeleteBackupMutationError = ErrorType<void>
+
+    /**
+ * @summary Delete a backup link
+ */
+export const useDeleteBackup = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBackup>>, TError,{id: number;backupId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteBackup>>,
+        TError,
+        {id: number;backupId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteBackupMutationOptions(options));
     }
 
 export const getMoveLinkUrl = (id: number,) => {
