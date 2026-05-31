@@ -296,6 +296,115 @@ router.post("/links/:id/check", async (req, res): Promise<void> => {
   res.json(CheckLinkResponse.parse(full));
 });
 
+/**
+ * GET /links/:id/serve
+ * Resolves the active URL for a video link and redirects (302) to it.
+ * Works as the `src` of <video>, inside any player, or as a direct download.
+ * Query param: ?autocheck=1  — re-checks the link before redirecting.
+ */
+router.get("/links/:id/serve", async (req, res): Promise<void> => {
+  const params = GetLinkParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: params.error.message });
+    return;
+  }
+
+  const link = await getLinkWithFolder(params.data.id);
+  if (!link) {
+    res.status(404).json({ error: "Link not found" });
+    return;
+  }
+
+  // Optional: re-check before redirecting
+  if (req.query.autocheck === "1") {
+    const result = await checkWithFallback(params.data.id, link.url, link.pageUrl);
+    await db
+      .update(videoLinksTable)
+      .set({
+        status: result.status,
+        refreshedUrl: result.resolvedUrl ?? link.refreshedUrl,
+        activeBackupId: result.activeBackupId,
+        lastChecked: new Date(),
+      })
+      .where(eq(videoLinksTable.id, params.data.id));
+
+    const refreshed = result.resolvedUrl ?? link.refreshedUrl ?? link.url;
+    res.redirect(302, refreshed);
+    return;
+  }
+
+  const target = link.refreshedUrl ?? link.url;
+  res.redirect(302, target);
+});
+
+/**
+ * GET /links/:id/embed
+ * Returns a minimal HTML page with a self-contained video player.
+ * Designed for <iframe> embedding on external sites.
+ */
+router.get("/links/:id/embed", async (req, res): Promise<void> => {
+  const params = GetLinkParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).send("Bad request");
+    return;
+  }
+
+  const link = await getLinkWithFolder(params.data.id);
+  if (!link) {
+    res.status(404).send("Link not found");
+    return;
+  }
+
+  const videoUrl = link.refreshedUrl ?? link.url;
+  const autoplay = req.query.autoplay === "1" ? "autoplay" : "";
+  const muted = req.query.muted === "1" ? "muted" : "";
+  const title = link.title.replace(/"/g, "&quot;").replace(/</g, "&lt;");
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>${title}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; background: #000; overflow: hidden; }
+  video {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .unavailable {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #888; font-family: system-ui, sans-serif; font-size: 14px; gap: 8px;
+  }
+  .unavailable svg { opacity: .4; }
+</style>
+</head>
+<body>
+${
+  link.status === "expired" && !link.refreshedUrl
+    ? `<div class="unavailable">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>Vídeo indisponível</span>
+      </div>`
+    : `<video src="${videoUrl}" controls ${autoplay} ${muted} playsinline>
+        <p>Seu navegador não suporta o player de vídeo.</p>
+      </video>`
+}
+</body>
+</html>`;
+
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.setHeader("X-Frame-Options", "ALLOWALL");
+  res.send(html);
+});
+
 router.patch("/links/:id/move", async (req, res): Promise<void> => {
   const params = MoveLinkParams.safeParse(req.params);
   if (!params.success) {

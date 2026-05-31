@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import {
   ArrowLeft, RefreshCw, Trash2, FolderOutput, CalendarClock,
   Copy, Globe, ShieldCheck, Plus, GripVertical, AlertTriangle,
+  Code2, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -46,6 +47,8 @@ export default function LinkDetail() {
   const [isEditingPageUrl, setIsEditingPageUrl] = useState(false);
   const [pageUrlInput, setPageUrlInput] = useState("");
   const [targetFolderId, setTargetFolderId] = useState<string>("none");
+
+  const [isIntegrationOpen, setIsIntegrationOpen] = useState(false);
 
   // Add backup form
   const [newBackupUrl, setNewBackupUrl] = useState("");
@@ -431,6 +434,124 @@ export default function LinkDetail() {
           </Card>
         </div>
       </div>
+
+      {/* Integration panel */}
+      {(() => {
+        const base = `${window.location.origin}/api/links/${id}`;
+        const serveUrl = `${base}/serve`;
+        const serveAutoUrl = `${base}/serve?autocheck=1`;
+        const embedUrl = `${base}/embed`;
+        const snippets = [
+          {
+            label: "Tag <video> — link direto",
+            hint: "O browser segue o redirect automaticamente. Funciona em qualquer player HTML5.",
+            code: `<video controls>\n  <source src="${serveUrl}" />\n</video>`,
+          },
+          {
+            label: "Tag <video> com verificação automática",
+            hint: "Antes de servir, o servidor re-checa e atualiza o URL se estiver expirado.",
+            code: `<video controls>\n  <source src="${serveAutoUrl}" />\n</video>`,
+          },
+          {
+            label: "Player via <iframe>",
+            hint: "Incorpora o player do VLM Control completo. Aceita ?autoplay=1 e ?muted=1.",
+            code: `<iframe\n  src="${embedUrl}"\n  width="100%"\n  style="aspect-ratio:16/9;border:none;"\n  allowfullscreen\n></iframe>`,
+          },
+          {
+            label: "JavaScript / fetch — obter URL ativo",
+            hint: "Para usar o URL em qualquer player personalizado (ex: Video.js, Plyr, HLS.js).",
+            code: `const res = await fetch("${serveUrl}", { redirect: "manual" });\nconst activeUrl = res.headers.get("Location");\n// use activeUrl no seu player`,
+          },
+        ];
+
+        return (
+          <div className="border border-border/50 rounded-xl overflow-hidden">
+            <button
+              className="w-full flex items-center justify-between p-4 text-sm font-medium hover:bg-muted/30 transition-colors"
+              onClick={() => setIsIntegrationOpen((v) => !v)}
+              data-testid="button-toggle-integration"
+            >
+              <div className="flex items-center gap-2">
+                <Code2 className="w-4 h-4 text-muted-foreground" />
+                <span>Integrar em outro site</span>
+              </div>
+              {isIntegrationOpen ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+
+            {isIntegrationOpen && (
+              <div className="border-t border-border/50 p-4 space-y-5 bg-muted/10">
+                <p className="text-sm text-muted-foreground">
+                  O VLM Control serve o link ativo via endpoints públicos. Mesmo que a URL original expire,
+                  o outro site continua funcionando — basta clicar em{" "}
+                  <strong className="text-foreground">Verificar / Atualizar</strong> aqui.
+                </p>
+
+                {/* URL refs */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { label: "Serve (redirect)", url: serveUrl },
+                    { label: "Embed (iframe)", url: embedUrl },
+                  ].map(({ label, url }) => (
+                    <div key={url} className="space-y-1">
+                      <div className="text-xs text-muted-foreground font-medium">{label}</div>
+                      <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-3 py-2">
+                        <code className="text-xs text-primary flex-1 truncate">{url}</code>
+                        <button
+                          onClick={() => { navigator.clipboard.writeText(url); toast.success("Copiado!"); }}
+                          className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator />
+
+                {/* Code snippets */}
+                <div className="space-y-4">
+                  {snippets.map((s) => (
+                    <div key={s.label} className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs font-medium text-foreground">{s.label}</div>
+                        <button
+                          onClick={() => { navigator.clipboard.writeText(s.code); toast.success("Snippet copiado!"); }}
+                          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                        >
+                          <Copy className="w-3 h-3" />
+                          Copiar
+                        </button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{s.hint}</p>
+                      <pre className="bg-background border border-border rounded-lg px-3 py-2.5 text-xs font-mono text-foreground overflow-x-auto whitespace-pre">
+                        {s.code}
+                      </pre>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator />
+
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p className="font-medium text-foreground">CORS</p>
+                  <p>
+                    Por padrão todos os domínios são aceitos. Para restringir, defina a variável de ambiente{" "}
+                    <code className="bg-muted px-1 rounded">CORS_ORIGINS</code> no servidor com domínios separados por vírgula:
+                  </p>
+                  <pre className="bg-background border border-border rounded-lg px-3 py-2 font-mono overflow-x-auto">
+                    CORS_ORIGINS=https://meusite.com,https://outro.com
+                  </pre>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Move dialog */}
       <Dialog open={isMoveOpen} onOpenChange={setIsMoveOpen}>
