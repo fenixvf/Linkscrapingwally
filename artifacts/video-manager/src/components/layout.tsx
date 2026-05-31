@@ -1,5 +1,18 @@
 import { useLocation } from "wouter";
-import { Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarRail, SidebarGroup, SidebarGroupContent, SidebarGroupLabel } from "@/components/ui/sidebar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { LayoutDashboard, FolderOpen, Link as LinkIcon, Activity } from "lucide-react";
 import { ReactNode } from "react";
 
@@ -31,8 +44,11 @@ export function Layout({ children }: { children: ReactNode }) {
                 <SidebarMenu>
                   {navItems.map((item) => (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton 
-                        isActive={location === item.url || (item.url !== "/" && location.startsWith(item.url))}
+                      <SidebarMenuButton
+                        isActive={
+                          location === item.url ||
+                          (item.url !== "/" && location.startsWith(item.url))
+                        }
                         onClick={() => setLocation(item.url)}
                         tooltip={item.title}
                       >
@@ -47,9 +63,23 @@ export function Layout({ children }: { children: ReactNode }) {
           </SidebarContent>
           <SidebarRail />
         </Sidebar>
-        <main className="flex-1 flex flex-col min-w-0 overflow-auto">
-          {children}
-        </main>
+
+        <div className="flex-1 flex flex-col min-w-0 overflow-auto">
+          {/* Mobile top bar */}
+          <header className="flex md:hidden items-center gap-3 h-14 px-4 border-b border-border bg-background sticky top-0 z-10">
+            <SidebarTrigger data-testid="button-mobile-menu" />
+            <div className="flex items-center gap-2 font-bold text-foreground">
+              <div className="bg-primary text-primary-foreground p-1 rounded-md">
+                <Activity className="w-4 h-4" />
+              </div>
+              <span className="text-sm">VLM Control</span>
+            </div>
+          </header>
+
+          <main className="flex-1 flex flex-col min-w-0">
+            {children}
+          </main>
+        </div>
       </div>
     </SidebarProvider>
   );
