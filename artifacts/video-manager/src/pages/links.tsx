@@ -33,6 +33,10 @@ export default function Links() {
   const [pageUrl, setPageUrl] = useState("");
   const [folderId, setFolderId] = useState<string>("none");
 
+  const invalidateLinks = () => {
+    queryClient.invalidateQueries({ queryKey: getListLinksQueryKey() });
+  };
+
   const handleCreate = () => {
     createLink.mutate({
       data: {
@@ -43,14 +47,17 @@ export default function Links() {
       }
     }, {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListLinksQueryKey() });
+        invalidateLinks();
         setIsCreateOpen(false);
         setTitle("");
         setUrl("");
         setPageUrl("");
         setFolderId("none");
         toast.success("Link adicionado");
-      }
+      },
+      onError: (err) => {
+        toast.error(`Erro ao adicionar link: ${err.message}`);
+      },
     });
   };
 
@@ -58,9 +65,12 @@ export default function Links() {
     if (confirm("Tem certeza que deseja remover este link?")) {
       deleteLink.mutate({ id }, {
         onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: getListLinksQueryKey() });
+          invalidateLinks();
           toast.success("Link removido");
-        }
+        },
+        onError: (err) => {
+          toast.error(`Erro ao remover link: ${err.message}`);
+        },
       });
     }
   };
@@ -68,22 +78,28 @@ export default function Links() {
   const handleCheck = (id: number) => {
     checkLink.mutate({ id }, {
       onSuccess: (res) => {
-        queryClient.invalidateQueries({ queryKey: getListLinksQueryKey() });
+        invalidateLinks();
         if (res.refreshedUrl) {
           toast.success("Link atualizado com sucesso");
         } else {
           toast.info(`Status: ${res.status}`);
         }
-      }
+      },
+      onError: (err) => {
+        toast.error(`Erro ao verificar link: ${err.message}`);
+      },
     });
   };
 
   const handleCheckAll = () => {
     checkAllLinks.mutate(undefined, {
       onSuccess: (res) => {
-        queryClient.invalidateQueries({ queryKey: getListLinksQueryKey() });
+        invalidateLinks();
         toast.success(`Verificados: ${res.checked} links — Ativos: ${res.active}, Expirados: ${res.expired}`);
-      }
+      },
+      onError: (err) => {
+        toast.error(`Erro ao verificar links: ${err.message}`);
+      },
     });
   };
 
