@@ -50,6 +50,8 @@ export interface VideoLink {
   title: string;
   url: string;
   /** @nullable */
+  pageUrl?: string | null;
+  /** @nullable */
   refreshedUrl?: string | null;
   status: VideoLinkStatus;
   /** @nullable */
@@ -65,6 +67,7 @@ export interface VideoLinkInput {
   title: string;
   /** @minLength 1 */
   url: string;
+  pageUrl?: string;
   folderId?: number;
   notes?: string;
 }
@@ -83,6 +86,7 @@ export interface VideoLinkUpdate {
   /** @minLength 1 */
   title?: string;
   url?: string;
+  pageUrl?: string;
   notes?: string;
   status?: VideoLinkUpdateStatus;
 }

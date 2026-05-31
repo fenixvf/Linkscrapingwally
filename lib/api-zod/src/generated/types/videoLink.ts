@@ -16,6 +16,8 @@ export interface VideoLink {
   title: string;
   url: string;
   /** @nullable */
+  pageUrl?: string | null;
+  /** @nullable */
   refreshedUrl?: string | null;
   status: VideoLinkStatus;
   /** @nullable */

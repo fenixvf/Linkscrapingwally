@@ -364,6 +364,8 @@ components:
           type: string
         url:
           type: string
+        pageUrl:
+          type: ["string", "null"]
         refreshedUrl:
           type: ["string", "null"]
         status:
@@ -391,6 +393,8 @@ components:
         url:
           type: string
           minLength: 1
+        pageUrl:
+          type: string
         folderId:
           type: integer
         notes:
@@ -403,6 +407,8 @@ components:
           type: string
           minLength: 1
         url:
+          type: string
+        pageUrl:
           type: string
         notes:
           type: string

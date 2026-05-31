@@ -8,6 +8,7 @@ export const videoLinksTable = pgTable("video_links", {
   folderId: integer("folder_id").references(() => foldersTable.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   url: text("url").notNull(),
+  pageUrl: text("page_url"),
   refreshedUrl: text("refreshed_url"),
   status: text("status").notNull().default("unknown"),
   notes: text("notes"),

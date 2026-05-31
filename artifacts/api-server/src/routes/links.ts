@@ -30,6 +30,7 @@ async function getLinkWithFolder(id: number) {
       folderName: foldersTable.name,
       title: videoLinksTable.title,
       url: videoLinksTable.url,
+      pageUrl: videoLinksTable.pageUrl,
       refreshedUrl: videoLinksTable.refreshedUrl,
       status: videoLinksTable.status,
       notes: videoLinksTable.notes,
@@ -67,6 +68,7 @@ router.get("/links", async (req, res): Promise<void> => {
       folderName: foldersTable.name,
       title: videoLinksTable.title,
       url: videoLinksTable.url,
+      pageUrl: videoLinksTable.pageUrl,
       refreshedUrl: videoLinksTable.refreshedUrl,
       status: videoLinksTable.status,
       notes: videoLinksTable.notes,
@@ -94,6 +96,7 @@ router.post("/links", async (req, res): Promise<void> => {
     .values({
       title: parsed.data.title,
       url: parsed.data.url,
+      pageUrl: parsed.data.pageUrl ?? null,
       folderId: parsed.data.folderId ?? null,
       notes: parsed.data.notes ?? null,
       status: "unknown",
@@ -113,7 +116,7 @@ router.post("/links/check-all", async (req, res): Promise<void> => {
 
   for (const link of links) {
     try {
-      const result = await checkVideoUrl(link.url);
+      const result = await checkVideoUrl(link.url, link.pageUrl);
       await db
         .update(videoLinksTable)
         .set({
@@ -174,6 +177,7 @@ router.patch("/links/:id", async (req, res): Promise<void> => {
   const updates: Record<string, unknown> = {};
   if (parsed.data.title !== undefined) updates.title = parsed.data.title;
   if (parsed.data.url !== undefined) updates.url = parsed.data.url;
+  if (parsed.data.pageUrl !== undefined) updates.pageUrl = parsed.data.pageUrl;
   if (parsed.data.notes !== undefined) updates.notes = parsed.data.notes;
   if (parsed.data.status !== undefined) updates.status = parsed.data.status;
 
@@ -225,7 +229,7 @@ router.post("/links/:id/check", async (req, res): Promise<void> => {
     return;
   }
 
-  const result = await checkVideoUrl(existing.url);
+  const result = await checkVideoUrl(existing.url, existing.pageUrl);
 
   const [updated] = await db
     .update(videoLinksTable)

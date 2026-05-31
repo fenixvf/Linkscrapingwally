@@ -107,6 +107,7 @@ export const ListLinksResponseItem = zod.object({
   "folderName": zod.string().nullish(),
   "title": zod.string(),
   "url": zod.string(),
+  "pageUrl": zod.string().nullish(),
   "refreshedUrl": zod.string().nullish(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
@@ -127,6 +128,7 @@ export const ListLinksResponse = zod.array(ListLinksResponseItem)
 export const CreateLinkBody = zod.object({
   "title": zod.string().min(1),
   "url": zod.string().min(1),
+  "pageUrl": zod.string().optional(),
   "folderId": zod.number().optional(),
   "notes": zod.string().optional()
 })
@@ -145,6 +147,7 @@ export const GetLinkResponse = zod.object({
   "folderName": zod.string().nullish(),
   "title": zod.string(),
   "url": zod.string(),
+  "pageUrl": zod.string().nullish(),
   "refreshedUrl": zod.string().nullish(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
@@ -167,6 +170,7 @@ export const UpdateLinkParams = zod.object({
 export const UpdateLinkBody = zod.object({
   "title": zod.string().min(1).optional(),
   "url": zod.string().optional(),
+  "pageUrl": zod.string().optional(),
   "notes": zod.string().optional(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']).optional()
 })
@@ -177,6 +181,7 @@ export const UpdateLinkResponse = zod.object({
   "folderName": zod.string().nullish(),
   "title": zod.string(),
   "url": zod.string(),
+  "pageUrl": zod.string().nullish(),
   "refreshedUrl": zod.string().nullish(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
@@ -207,6 +212,7 @@ export const CheckLinkResponse = zod.object({
   "folderName": zod.string().nullish(),
   "title": zod.string(),
   "url": zod.string(),
+  "pageUrl": zod.string().nullish(),
   "refreshedUrl": zod.string().nullish(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
@@ -245,6 +251,7 @@ export const MoveLinkResponse = zod.object({
   "folderName": zod.string().nullish(),
   "title": zod.string(),
   "url": zod.string(),
+  "pageUrl": zod.string().nullish(),
   "refreshedUrl": zod.string().nullish(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),

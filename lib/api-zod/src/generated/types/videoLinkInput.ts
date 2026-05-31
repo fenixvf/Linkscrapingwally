@@ -11,6 +11,7 @@ export interface VideoLinkInput {
   title: string;
   /** @minLength 1 */
   url: string;
+  pageUrl?: string;
   folderId?: number;
   notes?: string;
 }

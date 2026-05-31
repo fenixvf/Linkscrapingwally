@@ -11,6 +11,7 @@ export interface VideoLinkUpdate {
   /** @minLength 1 */
   title?: string;
   url?: string;
+  pageUrl?: string;
   notes?: string;
   status?: VideoLinkUpdateStatus;
 }
