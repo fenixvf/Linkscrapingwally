@@ -1,15 +1,20 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Video Link Manager API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: folders
+    description: Folder operations
+  - name: links
+    description: Video link operations
+  - name: stats
+    description: Statistics operations
 paths:
   /healthz:
     get:
@@ -24,6 +29,279 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /folders:
+    get:
+      operationId: listFolders
+      tags: [folders]
+      summary: List all folders
+      responses:
+        "200":
+          description: List of folders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Folder"
+    post:
+      operationId: createFolder
+      tags: [folders]
+      summary: Create a folder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FolderInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Folder"
+
+  /folders/{id}:
+    get:
+      operationId: getFolder
+      tags: [folders]
+      summary: Get a folder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Folder
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Folder"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateFolder
+      tags: [folders]
+      summary: Update a folder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FolderUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Folder"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteFolder
+      tags: [folders]
+      summary: Delete a folder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /links:
+    get:
+      operationId: listLinks
+      tags: [links]
+      summary: List video links
+      parameters:
+        - name: folderId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, expired, checking, unknown]
+      responses:
+        "200":
+          description: List of video links
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VideoLink"
+    post:
+      operationId: createLink
+      tags: [links]
+      summary: Add a video link
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VideoLinkInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoLink"
+
+  /links/{id}:
+    get:
+      operationId: getLink
+      tags: [links]
+      summary: Get a video link
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Video link
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoLink"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateLink
+      tags: [links]
+      summary: Update a video link
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VideoLinkUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoLink"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteLink
+      tags: [links]
+      summary: Delete a video link
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+
+  /links/{id}/check:
+    post:
+      operationId: checkLink
+      tags: [links]
+      summary: Check and refresh a video link
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Check result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoLink"
+        "404":
+          description: Not found
+
+  /links/check-all:
+    post:
+      operationId: checkAllLinks
+      tags: [links]
+      summary: Check and refresh all video links
+      responses:
+        "200":
+          description: Check results summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckAllResult"
+
+  /links/{id}/move:
+    patch:
+      operationId: moveLink
+      tags: [links]
+      summary: Move a link to a different folder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveLinkInput"
+      responses:
+        "200":
+          description: Moved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoLink"
+        "404":
+          description: Not found
+
+  /stats:
+    get:
+      operationId: getStats
+      tags: [stats]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +312,138 @@ components:
       required:
         - status
 
+    Folder:
+      type: object
+      required: [id, name, createdAt, updatedAt, linkCount]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        linkCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    FolderInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+
+    FolderUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+
+    VideoLink:
+      type: object
+      required: [id, title, url, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        folderId:
+          type: ["integer", "null"]
+        folderName:
+          type: ["string", "null"]
+        title:
+          type: string
+        url:
+          type: string
+        refreshedUrl:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [active, expired, checking, unknown]
+        notes:
+          type: ["string", "null"]
+        lastChecked:
+          type: ["string", "null"]
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    VideoLinkInput:
+      type: object
+      required: [title, url]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        url:
+          type: string
+          minLength: 1
+        folderId:
+          type: integer
+        notes:
+          type: string
+
+    VideoLinkUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        url:
+          type: string
+        notes:
+          type: string
+        status:
+          type: string
+          enum: [active, expired, checking, unknown]
+
+    MoveLinkInput:
+      type: object
+      properties:
+        folderId:
+          type: ["integer", "null"]
+
+    CheckAllResult:
+      type: object
+      required: [total, checked, active, expired, failed]
+      properties:
+        total:
+          type: integer
+        checked:
+          type: integer
+        active:
+          type: integer
+        expired:
+          type: integer
+        failed:
+          type: integer
+
+    Stats:
+      type: object
+      required: [totalLinks, activeLinks, expiredLinks, unknownLinks, totalFolders, recentlyChecked]
+      properties:
+        totalLinks:
+          type: integer
+        activeLinks:
+          type: integer
+        expiredLinks:
+          type: integer
+        unknownLinks:
+          type: integer
+        totalFolders:
+          type: integer
+        recentlyChecked:
+          type: integer

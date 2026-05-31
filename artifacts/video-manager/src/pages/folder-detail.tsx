@@ -1,0 +1,193 @@
+import { useState } from "react";
+import { useGetFolder, useListLinks, useCreateLink, useDeleteLink, useCheckLink, getGetFolderQueryKey, getListLinksQueryKey } from "@workspace/api-client-react";
+import { useParams, useLocation } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Folder, Plus, ArrowLeft, RefreshCw, Trash2, Link as LinkIcon, Copy } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
+
+export default function FolderDetail() {
+  const params = useParams();
+  const folderId = Number(params.id);
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+
+  const { data: folder, isLoading: folderLoading } = useGetFolder(folderId, { query: { enabled: !!folderId, queryKey: getGetFolderQueryKey(folderId) } });
+  const { data: links, isLoading: linksLoading } = useListLinks({ folderId }, { query: { enabled: !!folderId, queryKey: getListLinksQueryKey({ folderId }) } });
+
+  const createLink = useCreateLink();
+  const deleteLink = useDeleteLink();
+  const checkLink = useCheckLink();
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [url, setUrl] = useState("");
+
+  const handleCreate = () => {
+    createLink.mutate({ data: { title, url, folderId } }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListLinksQueryKey({ folderId }) });
+        queryClient.invalidateQueries({ queryKey: getGetFolderQueryKey(folderId) });
+        setIsCreateOpen(false);
+        setTitle("");
+        setUrl("");
+        toast.success("Link added");
+      }
+    });
+  };
+
+  const handleDelete = (id: number) => {
+    if (confirm("Are you sure you want to remove this link?")) {
+      deleteLink.mutate({ id }, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListLinksQueryKey({ folderId }) });
+          queryClient.invalidateQueries({ queryKey: getGetFolderQueryKey(folderId) });
+          toast.success("Link removed");
+        }
+      });
+    }
+  };
+
+  const handleCheck = (id: number) => {
+    checkLink.mutate({ id }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListLinksQueryKey({ folderId }) });
+        toast.success("Link checked");
+      }
+    });
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("Copied to clipboard");
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "active": return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Active</Badge>;
+      case "expired": return <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">Expired</Badge>;
+      case "checking": return <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">Checking...</Badge>;
+      default: return <Badge variant="secondary">Unknown</Badge>;
+    }
+  };
+
+  if (folderLoading) {
+    return <div className="p-8 text-center">Loading folder...</div>;
+  }
+
+  if (!folder) {
+    return <div className="p-8 text-center">Folder not found.</div>;
+  }
+
+  return (
+    <div className="p-8 max-w-6xl mx-auto w-full space-y-8">
+      <Button variant="ghost" onClick={() => setLocation("/folders")} className="-ml-4 mb-4 text-muted-foreground">
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back to Folders
+      </Button>
+
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-3">
+            <Folder className="w-8 h-8 text-primary" />
+            <h1 className="text-3xl font-bold tracking-tight">{folder.name}</h1>
+          </div>
+          {folder.description && (
+            <p className="text-muted-foreground mt-2">{folder.description}</p>
+          )}
+        </div>
+        <Button onClick={() => setIsCreateOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Link
+        </Button>
+      </div>
+
+      <Card className="border-border/50 bg-card/50 backdrop-blur">
+        <CardHeader>
+          <CardTitle>Links in {folder.name}</CardTitle>
+          <CardDescription>Manage and monitor video links in this folder.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>URL</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {linksLoading ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8">Loading links...</TableCell>
+                </TableRow>
+              ) : links?.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                    <LinkIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    No links in this folder.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                links?.map((link) => (
+                  <TableRow key={link.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setLocation(`/links/${link.id}`)}>
+                    <TableCell className="font-medium">{link.title}</TableCell>
+                    <TableCell>{getStatusBadge(link.status)}</TableCell>
+                    <TableCell className="font-mono text-xs max-w-[200px] truncate" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-2">
+                        <span className="truncate">{link.refreshedUrl || link.url}</span>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto flex-shrink-0" onClick={() => copyToClipboard(link.refreshedUrl || link.url)}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleCheck(link.id)} disabled={checkLink.isPending}>
+                          <RefreshCw className={`w-3 h-3 mr-1 ${checkLink.isPending ? 'animate-spin' : ''}`} />
+                          Check
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(link.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Link to Folder</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Title</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Intro Video" />
+            </div>
+            <div className="space-y-2">
+              <Label>URL</Label>
+              <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." type="url" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreate} disabled={!title || !url || createLink.isPending}>Add Link</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
