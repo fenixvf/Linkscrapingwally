@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
-import { eq, and, sql, asc } from "drizzle-orm";
-import { db, videoLinksTable, foldersTable, backupLinksTable } from "@workspace/db";
+import { eq, and, sql } from "drizzle-orm";
+import { db, videoLinksTable, foldersTable } from "@workspace/db";
 import {
   ListLinksQueryParams,
   CreateLinkBody,
@@ -18,8 +18,7 @@ import {
   MoveLinkResponse,
   CheckAllLinksResponse,
 } from "@workspace/api-zod";
-import { checkVideoUrl } from "../lib/linkChecker";
-import { logger } from "../lib/logger";
+import { checkWithFallback, runLinkCheck } from "../lib/checkLink";
 
 const router: IRouter = Router();
 
@@ -51,52 +50,6 @@ async function getLinkWithFolder(id: number) {
     .leftJoin(foldersTable, eq(foldersTable.id, videoLinksTable.folderId))
     .where(eq(videoLinksTable.id, id));
   return rows[0] ?? null;
-}
-
-/**
- * Checks primary URL, then falls back through backups in priority order.
- * Returns the first working URL and which backupId was used (null = primary).
- */
-async function checkWithFallback(linkId: number, primaryUrl: string, pageUrl: string | null | undefined): Promise<{
-  status: "active" | "expired" | "unknown";
-  resolvedUrl: string | null;
-  activeBackupId: number | null;
-}> {
-  // Try primary first
-  const primary = await checkVideoUrl(primaryUrl, pageUrl);
-  if (primary.status === "active") {
-    return { ...primary, activeBackupId: null };
-  }
-
-  // Primary failed — try backups in priority order
-  const backups = await db
-    .select()
-    .from(backupLinksTable)
-    .where(eq(backupLinksTable.videoLinkId, linkId))
-    .orderBy(asc(backupLinksTable.priority), asc(backupLinksTable.createdAt));
-
-  for (const backup of backups) {
-    logger.info({ backupId: backup.id, url: backup.url }, "Trying backup link");
-    const result = await checkVideoUrl(backup.url, null);
-
-    // Update the backup's own status
-    await db
-      .update(backupLinksTable)
-      .set({ status: result.status, lastChecked: new Date() })
-      .where(eq(backupLinksTable.id, backup.id));
-
-    if (result.status === "active") {
-      logger.info({ backupId: backup.id }, "Backup link is active — promoting");
-      return {
-        status: "active",
-        resolvedUrl: result.resolvedUrl ?? backup.url,
-        activeBackupId: backup.id,
-      };
-    }
-  }
-
-  // All failed
-  return { status: primary.status, resolvedUrl: primary.resolvedUrl, activeBackupId: null };
 }
 
 // ---------------------------------------------------------------------------

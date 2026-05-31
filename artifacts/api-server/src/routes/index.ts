@@ -4,6 +4,7 @@ import foldersRouter from "./folders";
 import linksRouter from "./links";
 import backupsRouter from "./backups";
 import statsRouter from "./stats";
+import schedulerRouter from "./scheduler";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(foldersRouter);
 router.use(linksRouter);
 router.use(backupsRouter);
 router.use(statsRouter);
+router.use(schedulerRouter);
 
 export default router;
