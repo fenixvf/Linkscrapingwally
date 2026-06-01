@@ -46,14 +46,15 @@ export default function Links() {
         folderId: folderId === "none" ? undefined : Number(folderId),
       }
     }, {
-      onSuccess: () => {
+      onSuccess: (created) => {
         invalidateLinks();
         setIsCreateOpen(false);
         setTitle("");
         setUrl("");
         setPageUrl("");
         setFolderId("none");
-        toast.success("Link adicionado");
+        toast.success("Link adicionado! Redirecionando...");
+        setLocation(`/links/${created.id}`);
       },
       onError: (err) => {
         toast.error(`Erro ao adicionar link: ${err.message}`);

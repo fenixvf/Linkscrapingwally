@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import {
   ArrowLeft, RefreshCw, Trash2, FolderOutput, CalendarClock,
   Copy, Globe, ShieldCheck, Plus, GripVertical, AlertTriangle,
-  Code2, ChevronDown, ChevronUp, Pencil,
+  Code2, ChevronDown, ChevronUp, Pencil, Link as LinkIcon,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -163,9 +163,28 @@ export default function LinkDetail() {
 
   const displayUrl = link.refreshedUrl || link.url;
   const isUsingBackup = !!link.activeBackupId;
+  const apiOrigin = import.meta.env.VITE_API_URL ?? window.location.origin;
+  const serveUrl = `${apiOrigin}/api/links/${id}/serve`;
 
   return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto w-full space-y-8">
+      {/* Distribution URL banner */}
+      <div className="flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-xl px-4 py-3">
+        <LinkIcon className="w-4 h-4 text-primary flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-0.5">URL de Distribuição deste link</p>
+          <code className="text-sm font-mono text-foreground truncate block">{serveUrl}</code>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex-shrink-0 text-primary hover:text-primary"
+          onClick={() => copyToClipboard(serveUrl)}
+        >
+          <Copy className="w-4 h-4" />
+        </Button>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
         <Button variant="ghost" onClick={() => setLocation(link.folderId ? `/folders/${link.folderId}` : "/links")} className="-ml-4 text-muted-foreground" data-testid="button-back">
