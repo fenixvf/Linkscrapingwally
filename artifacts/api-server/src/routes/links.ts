@@ -180,7 +180,13 @@ router.patch("/links/:id", async (req, res): Promise<void> => {
 
   const updates: Record<string, unknown> = {};
   if (parsed.data.title !== undefined) updates.title = parsed.data.title;
-  if (parsed.data.url !== undefined) updates.url = parsed.data.url;
+  if (parsed.data.url !== undefined) {
+    updates.url = parsed.data.url;
+    // Clear refreshedUrl so the new URL takes effect immediately on /serve
+    updates.refreshedUrl = null;
+    updates.status = "unknown";
+    updates.lastChecked = null;
+  }
   if (parsed.data.pageUrl !== undefined) updates.pageUrl = parsed.data.pageUrl;
   if (parsed.data.notes !== undefined) updates.notes = parsed.data.notes;
   if (parsed.data.status !== undefined) updates.status = parsed.data.status;
