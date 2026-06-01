@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import {
   ArrowLeft, RefreshCw, Trash2, FolderOutput, CalendarClock,
   Copy, Globe, ShieldCheck, Plus, GripVertical, AlertTriangle,
-  Code2, ChevronDown, ChevronUp,
+  Code2, ChevronDown, ChevronUp, Pencil,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -47,6 +47,8 @@ export default function LinkDetail() {
   const [isEditingPageUrl, setIsEditingPageUrl] = useState(false);
   const [pageUrlInput, setPageUrlInput] = useState("");
   const [targetFolderId, setTargetFolderId] = useState<string>("none");
+  const [isEditingUrl, setIsEditingUrl] = useState(false);
+  const [urlInput, setUrlInput] = useState("");
 
   const [isIntegrationOpen, setIsIntegrationOpen] = useState(false);
 
@@ -96,6 +98,13 @@ export default function LinkDetail() {
   const handleSavePageUrl = () => {
     updateLink.mutate({ id, data: { pageUrl: pageUrlInput.trim() } }, {
       onSuccess: () => { invalidateLink(); setIsEditingPageUrl(false); toast.success("URL da página salva"); }
+    });
+  };
+
+  const handleSaveUrl = () => {
+    if (!urlInput.trim()) return;
+    updateLink.mutate({ id, data: { url: urlInput.trim() } }, {
+      onSuccess: () => { invalidateLink(); setIsEditingUrl(false); toast.success("URL do vídeo atualizado!"); }
     });
   };
 
@@ -327,10 +336,34 @@ export default function LinkDetail() {
         {/* Right: URLs, page source, notes, last checked */}
         <div className="space-y-6">
           <Card className="border-border/50 bg-card/50 backdrop-blur">
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">URLs</CardTitle>
+              {!isEditingUrl && (
+                <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => { setUrlInput(link.url); setIsEditingUrl(true); }} data-testid="button-edit-url">
+                  <Pencil className="w-3 h-3 mr-1" />
+                  Trocar URL
+                </Button>
+              )}
             </CardHeader>
             <CardContent className="space-y-4">
+              {isEditingUrl ? (
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Nova URL do Vídeo</Label>
+                  <Input
+                    value={urlInput}
+                    onChange={(e) => setUrlInput(e.target.value)}
+                    placeholder="https://cdn.exemplo.com/novo-video.mp4"
+                    type="url"
+                    className="bg-background/50 text-sm"
+                    data-testid="input-edit-url"
+                  />
+                  <p className="text-xs text-muted-foreground">O URL de distribuição (<code>/serve</code>) permanece o mesmo — só o vídeo muda.</p>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => setIsEditingUrl(false)}>Cancelar</Button>
+                    <Button size="sm" onClick={handleSaveUrl} disabled={!urlInput.trim() || updateLink.isPending} data-testid="button-save-url">Salvar</Button>
+                  </div>
+                </div>
+              ) : (
               <div className="space-y-1">
                 <div className="text-xs text-muted-foreground flex justify-between">
                   URL Original
@@ -342,6 +375,7 @@ export default function LinkDetail() {
                   {link.url}
                 </a>
               </div>
+              )}
 
               {link.refreshedUrl && link.refreshedUrl !== link.url && (
                 <>
