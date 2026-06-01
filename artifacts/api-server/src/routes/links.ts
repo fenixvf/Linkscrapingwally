@@ -268,6 +268,9 @@ router.get("/links/:id/serve", async (req, res): Promise<void> => {
     return;
   }
 
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+
   // Optional: re-check before redirecting
   if (req.query.autocheck === "1") {
     const result = await checkWithFallback(params.data.id, link.url, link.pageUrl);
@@ -355,6 +358,8 @@ ${
 
   res.setHeader("Content-Type", "text/html; charset=utf-8");
   res.setHeader("X-Frame-Options", "ALLOWALL");
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
   res.send(html);
 });
 
