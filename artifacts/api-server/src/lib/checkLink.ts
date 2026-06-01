@@ -6,6 +6,23 @@ import { db, videoLinksTable, backupLinksTable } from "@workspace/db";
 import { checkVideoUrl } from "./linkChecker";
 import { logger } from "./logger";
 
+/**
+ * Computes the new refreshedUrl to store after a check.
+ *
+ * Rules:
+ *  - resolvedUrl found (from scraping or redirect) → always use it
+ *  - link is active but no redirect found → clear refreshedUrl so /serve uses link.url
+ *  - link is broken → preserve the existing refreshedUrl as a last-resort fallback
+ */
+export function computeRefreshedUrl(
+  result: CheckResult,
+  existingRefreshedUrl: string | null | undefined,
+): string | null {
+  if (result.resolvedUrl !== null) return result.resolvedUrl;
+  if (result.status === "active") return null;
+  return existingRefreshedUrl ?? null;
+}
+
 export interface CheckResult {
   status: "active" | "expired" | "unknown";
   resolvedUrl: string | null;
@@ -74,7 +91,7 @@ export async function runLinkCheck(linkId: number): Promise<CheckResult> {
     .update(videoLinksTable)
     .set({
       status: result.status,
-      refreshedUrl: result.resolvedUrl ?? link.refreshedUrl,
+      refreshedUrl: computeRefreshedUrl(result, link.refreshedUrl),
       activeBackupId: result.activeBackupId,
       lastChecked: new Date(),
     })

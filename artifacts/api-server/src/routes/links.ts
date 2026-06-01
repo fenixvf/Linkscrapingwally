@@ -18,7 +18,7 @@ import {
   MoveLinkResponse,
   CheckAllLinksResponse,
 } from "@workspace/api-zod";
-import { checkWithFallback, runLinkCheck } from "../lib/checkLink";
+import { checkWithFallback, runLinkCheck, computeRefreshedUrl } from "../lib/checkLink";
 
 const router: IRouter = Router();
 
@@ -132,7 +132,7 @@ router.post("/links/check-all", async (req, res): Promise<void> => {
         .update(videoLinksTable)
         .set({
           status: result.status,
-          refreshedUrl: result.resolvedUrl ?? link.refreshedUrl,
+          refreshedUrl: computeRefreshedUrl(result, link.refreshedUrl),
           activeBackupId: result.activeBackupId,
           lastChecked: new Date(),
         })
@@ -245,7 +245,7 @@ router.post("/links/:id/check", async (req, res): Promise<void> => {
     .update(videoLinksTable)
     .set({
       status: result.status,
-      refreshedUrl: result.resolvedUrl ?? existing.refreshedUrl,
+      refreshedUrl: computeRefreshedUrl(result, existing.refreshedUrl),
       activeBackupId: result.activeBackupId,
       lastChecked: new Date(),
     })
@@ -280,17 +280,18 @@ router.get("/links/:id/serve", async (req, res): Promise<void> => {
   // Optional: re-check before redirecting
   if (req.query.autocheck === "1") {
     const result = await checkWithFallback(params.data.id, link.url, link.pageUrl);
+    const newRefreshedUrl = computeRefreshedUrl(result, link.refreshedUrl);
     await db
       .update(videoLinksTable)
       .set({
         status: result.status,
-        refreshedUrl: result.resolvedUrl ?? link.refreshedUrl,
+        refreshedUrl: newRefreshedUrl,
         activeBackupId: result.activeBackupId,
         lastChecked: new Date(),
       })
       .where(eq(videoLinksTable.id, params.data.id));
 
-    const refreshed = result.resolvedUrl ?? link.refreshedUrl ?? link.url;
+    const refreshed = newRefreshedUrl ?? link.url;
     res.redirect(302, refreshed);
     return;
   }
