@@ -437,7 +437,8 @@ export default function LinkDetail() {
 
       {/* Integration panel */}
       {(() => {
-        const base = `${window.location.origin}/api/links/${id}`;
+        const apiOrigin = import.meta.env.VITE_API_URL ?? window.location.origin;
+        const base = `${apiOrigin}/api/links/${id}`;
         const serveUrl = `${base}/serve`;
         const serveAutoUrl = `${base}/serve?autocheck=1`;
         const embedUrl = `${base}/embed`;
