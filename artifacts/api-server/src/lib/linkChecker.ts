@@ -207,9 +207,18 @@ export async function checkVideoUrl(
   pageUrl?: string | null,
 ): Promise<{ status: LinkStatus; resolvedUrl: string | null }> {
 
-  // ── Strategy 1: page scraping with slug-aware ranking ──────────────────────
+  // ── Strategy 1: direct check first — only scrape if original URL is dead ───
+  // Always verify the current URL before trying to find a replacement.
+  // This prevents scraping from overwriting a working link with an old one.
+  const originalAlive = await checkUrlAlive(url);
+  if (originalAlive) {
+    logger.info({ url }, "Original URL is alive — skipping scraping");
+    return { status: "active", resolvedUrl: null };
+  }
+
+  // ── Strategy 2: page scraping (only when original URL is dead) ─────────────
   if (pageUrl) {
-    logger.info({ pageUrl }, "Fetching page to extract video URL");
+    logger.info({ pageUrl }, "Original URL dead — fetching page to extract replacement");
     const html = await fetchPage(pageUrl);
 
     if (html) {
@@ -246,43 +255,27 @@ export async function checkVideoUrl(
     }
   }
 
-  // ── Strategy 2: direct HEAD/GET check ──────────────────────────────────────
+  // ── Strategy 3: URL is dead, no scraping available — determine exact status ─
+  // checkUrlAlive already returned false; do a detailed check to distinguish
+  // "expired" (4xx) from "unknown" (network error / timeout).
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-    let response: Response;
+    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-      response = await fetch(url, {
+      const response = await fetch(url, {
         method: "HEAD",
         signal: controller.signal,
         redirect: "follow",
         headers: { "User-Agent": "Mozilla/5.0 (compatible; VideoLinkChecker/1.0)" },
       });
-    } catch {
-      response = await fetch(url, {
-        method: "GET",
-        signal: controller.signal,
-        redirect: "follow",
-        headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; VideoLinkChecker/1.0)",
-          Range: "bytes=0-0",
-        },
-      });
+      if ([401, 403, 404, 410].includes(response.status)) {
+        return { status: "expired", resolvedUrl: null };
+      }
     } finally {
       clearTimeout(timeout);
     }
-
-    const resolvedUrl = response.url !== url ? response.url : null;
-
-    if (response.status >= 200 && response.status < 400) {
-      return { status: "active", resolvedUrl };
-    }
-    if ([401, 403, 404, 410].includes(response.status)) {
-      return { status: "expired", resolvedUrl: null };
-    }
-    return { status: "unknown", resolvedUrl };
-  } catch (err) {
-    logger.warn({ err, url }, "Failed to check URL directly");
-    return { status: "unknown", resolvedUrl: null };
+  } catch {
+    // network error / timeout — fall through to unknown
   }
+  return { status: "unknown", resolvedUrl: null };
 }
