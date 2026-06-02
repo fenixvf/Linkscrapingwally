@@ -49,6 +49,8 @@ export default function LinkDetail() {
   const [targetFolderId, setTargetFolderId] = useState<string>("none");
   const [isEditingUrl, setIsEditingUrl] = useState(false);
   const [urlInput, setUrlInput] = useState("");
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState("");
 
   const [isIntegrationOpen, setIsIntegrationOpen] = useState(false);
 
@@ -87,6 +89,13 @@ export default function LinkDetail() {
         }
       });
     }
+  };
+
+  const handleSaveTitle = () => {
+    if (!titleInput.trim()) return;
+    updateLink.mutate({ id, data: { title: titleInput.trim() } }, {
+      onSuccess: () => { invalidateLink(); setIsEditingTitle(false); toast.success("Nome atualizado"); }
+    });
   };
 
   const handleSaveNotes = () => {
@@ -215,16 +224,39 @@ export default function LinkDetail() {
         {/* Left: player + backup notice */}
         <div className="lg:col-span-2 space-y-6">
           <div>
-            <div className="flex items-center gap-3 mb-2 flex-wrap">
-              <h1 className="text-3xl font-bold tracking-tight">{link.title}</h1>
-              {getStatusBadge(link.status)}
-              {isUsingBackup && (
-                <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 px-3 py-1 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" />
-                  Usando backup
-                </Badge>
-              )}
-            </div>
+            {isEditingTitle ? (
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <Input
+                  value={titleInput}
+                  onChange={(e) => setTitleInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSaveTitle(); if (e.key === "Escape") setIsEditingTitle(false); }}
+                  className="text-2xl font-bold h-auto py-1 px-2 bg-background/50 flex-1 min-w-0"
+                  autoFocus
+                  data-testid="input-edit-title"
+                />
+                <Button size="sm" onClick={handleSaveTitle} disabled={!titleInput.trim() || updateLink.isPending} data-testid="button-save-title">Salvar</Button>
+                <Button size="sm" variant="ghost" onClick={() => setIsEditingTitle(false)}>Cancelar</Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 mb-2 flex-wrap">
+                <h1 className="text-3xl font-bold tracking-tight">{link.title}</h1>
+                <button
+                  onClick={() => { setTitleInput(link.title); setIsEditingTitle(true); }}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  title="Editar nome"
+                  data-testid="button-edit-title"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                {getStatusBadge(link.status)}
+                {isUsingBackup && (
+                  <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 px-3 py-1 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" />
+                    Usando backup
+                  </Badge>
+                )}
+              </div>
+            )}
             {link.folderName && (
               <p className="text-muted-foreground">na pasta: <span className="font-medium text-foreground">{link.folderName}</span></p>
             )}
