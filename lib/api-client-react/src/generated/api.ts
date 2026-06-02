@@ -20,6 +20,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ArchiveOrgImportInput,
+  ArchiveOrgImportResult,
   BackupLink,
   BackupLinkInput,
   BackupLinkUpdate,
@@ -1372,6 +1374,77 @@ export const useMoveLink = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getMoveLinkMutationOptions(options));
+    }
+
+export const getImportFromArchiveOrgUrl = () => {
+
+
+
+
+  return `/api/import/archive-org`
+}
+
+/**
+ * @summary Import video links from an Archive.org item page
+ */
+export const importFromArchiveOrg = async (archiveOrgImportInput: ArchiveOrgImportInput, options?: RequestInit): Promise<ArchiveOrgImportResult> => {
+
+  return customFetch<ArchiveOrgImportResult>(getImportFromArchiveOrgUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      archiveOrgImportInput,)
+  }
+);}
+
+
+
+
+export const getImportFromArchiveOrgMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importFromArchiveOrg>>, TError,{data: BodyType<ArchiveOrgImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importFromArchiveOrg>>, TError,{data: BodyType<ArchiveOrgImportInput>}, TContext> => {
+
+const mutationKey = ['importFromArchiveOrg'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importFromArchiveOrg>>, {data: BodyType<ArchiveOrgImportInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  importFromArchiveOrg(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportFromArchiveOrgMutationResult = NonNullable<Awaited<ReturnType<typeof importFromArchiveOrg>>>
+    export type ImportFromArchiveOrgMutationBody = BodyType<ArchiveOrgImportInput>
+    export type ImportFromArchiveOrgMutationError = ErrorType<void>
+
+    /**
+ * @summary Import video links from an Archive.org item page
+ */
+export const useImportFromArchiveOrg = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importFromArchiveOrg>>, TError,{data: BodyType<ArchiveOrgImportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importFromArchiveOrg>>,
+        TError,
+        {data: BodyType<ArchiveOrgImportInput>},
+        TContext
+      > => {
+      return useMutation(getImportFromArchiveOrgMutationOptions(options));
     }
 
 export const getGetStatsUrl = () => {

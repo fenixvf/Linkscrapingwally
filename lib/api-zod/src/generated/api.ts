@@ -348,6 +348,40 @@ export const MoveLinkResponse = zod.object({
 
 
 /**
+ * @summary Import video links from an Archive.org item page
+ */
+
+
+
+export const ImportFromArchiveOrgBody = zod.object({
+  "url": zod.string().min(1).describe('Archive.org item or collection page URL (e.g. https:\/\/archive.org\/details\/ZeroS01)'),
+  "folderId": zod.number().optional().describe('Optional folder ID to place the imported links in'),
+  "preferFormat": zod.string().optional().describe('Preferred video format (e.g. \"h.264\", \"MPEG4\"). Falls back to best available.')
+})
+
+export const ImportFromArchiveOrgResponse = zod.object({
+  "imported": zod.number(),
+  "skipped": zod.number(),
+  "links": zod.array(zod.object({
+  "id": zod.number(),
+  "folderId": zod.number().nullish(),
+  "folderName": zod.string().nullish(),
+  "title": zod.string(),
+  "url": zod.string(),
+  "pageUrl": zod.string().nullish(),
+  "refreshedUrl": zod.string().nullish(),
+  "activeBackupId": zod.number().nullish(),
+  "backupCount": zod.number(),
+  "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
+  "notes": zod.string().nullish(),
+  "lastChecked": zod.coerce.date().nullish(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}))
+})
+
+
+/**
  * @summary Get dashboard statistics
  */
 export const GetStatsResponse = zod.object({

@@ -143,6 +143,24 @@ export interface CheckAllResult {
   failed: number;
 }
 
+export interface ArchiveOrgImportInput {
+  /**
+     * Archive.org item or collection page URL (e.g. https://archive.org/details/ZeroS01)
+     * @minLength 1
+     */
+  url: string;
+  /** Optional folder ID to place the imported links in */
+  folderId?: number;
+  /** Preferred video format (e.g. "h.264", "MPEG4"). Falls back to best available. */
+  preferFormat?: string;
+}
+
+export interface ArchiveOrgImportResult {
+  imported: number;
+  skipped: number;
+  links: VideoLink[];
+}
+
 export interface Stats {
   totalLinks: number;
   activeLinks: number;

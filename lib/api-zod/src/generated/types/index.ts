@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './archiveOrgImportInput';
+export * from './archiveOrgImportResult';
 export * from './backupLink';
 export * from './backupLinkInput';
 export * from './backupLinkStatus';

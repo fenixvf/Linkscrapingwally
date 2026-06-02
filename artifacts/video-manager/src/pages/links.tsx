@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { useListLinks, useCreateLink, useDeleteLink, useCheckLink, useCheckAllLinks, getListLinksQueryKey, useListFolders, getListFoldersQueryKey, type ListLinksStatus } from "@workspace/api-client-react";
+import { useListLinks, useCreateLink, useDeleteLink, useCheckLink, useCheckAllLinks, getListLinksQueryKey, useListFolders, getListFoldersQueryKey, useImportFromArchiveOrg, type ListLinksStatus } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, RefreshCw, Trash2, Link as LinkIcon, Copy, Filter, Search } from "lucide-react";
+import { Plus, RefreshCw, Trash2, Link as LinkIcon, Copy, Filter, Search, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
@@ -33,12 +33,17 @@ export default function Links() {
   const deleteLink = useDeleteLink();
   const checkLink = useCheckLink();
   const checkAllLinks = useCheckAllLinks();
+  const importFromArchiveOrg = useImportFromArchiveOrg();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [pageUrl, setPageUrl] = useState("");
   const [folderId, setFolderId] = useState<string>("none");
+
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [importFolderId, setImportFolderId] = useState<string>("none");
 
   const invalidateLinks = () => {
     queryClient.invalidateQueries({ queryKey: getListLinksQueryKey() });
@@ -111,6 +116,27 @@ export default function Links() {
     });
   };
 
+  const handleImport = () => {
+    if (!importUrl.trim()) return;
+    importFromArchiveOrg.mutate({
+      data: {
+        url: importUrl.trim(),
+        folderId: importFolderId === "none" ? undefined : Number(importFolderId),
+      }
+    }, {
+      onSuccess: (result) => {
+        invalidateLinks();
+        setIsImportOpen(false);
+        setImportUrl("");
+        setImportFolderId("none");
+        toast.success(`${result.imported} vídeo(s) importado(s) do Archive.org!`);
+      },
+      onError: (err) => {
+        toast.error(`Erro ao importar: ${err.message}`);
+      },
+    });
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copiado para a área de transferência");
@@ -136,6 +162,10 @@ export default function Links() {
           <Button variant="outline" onClick={handleCheckAll} disabled={checkAllLinks.isPending} className="font-semibold text-primary" data-testid="button-check-all">
             <RefreshCw className={`w-4 h-4 mr-2 ${checkAllLinks.isPending ? 'animate-spin' : ''}`} />
             Verificar Todos
+          </Button>
+          <Button variant="outline" onClick={() => setIsImportOpen(true)} data-testid="button-import-archive">
+            <Download className="w-4 h-4 mr-2" />
+            Importar do Archive.org
           </Button>
           <Button onClick={() => setIsCreateOpen(true)} data-testid="button-add-link">
             <Plus className="w-4 h-4 mr-2" />
@@ -233,6 +263,67 @@ export default function Links() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Importar do Archive.org</DialogTitle>
+            <DialogDescription>
+              Cole o link de um item do Archive.org para importar todos os vídeos automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>URL do Archive.org</Label>
+              <Input
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                placeholder="https://archive.org/details/ZeroS01"
+                type="url"
+                data-testid="input-import-url"
+              />
+              <p className="text-xs text-muted-foreground">
+                Ex: <span className="font-mono">https://archive.org/details/ZeroS01</span>
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>
+                Pasta <span className="text-muted-foreground font-normal">(opcional)</span>
+              </Label>
+              <Select value={importFolderId} onValueChange={setImportFolderId}>
+                <SelectTrigger data-testid="select-import-folder">
+                  <SelectValue placeholder="Selecionar pasta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  {folders?.map(f => (
+                    <SelectItem key={f.id} value={f.id.toString()}>{f.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {importFromArchiveOrg.isPending && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Buscando vídeos no Archive.org...
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsImportOpen(false)} disabled={importFromArchiveOrg.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleImport}
+              disabled={!importUrl.trim() || importFromArchiveOrg.isPending}
+              data-testid="button-submit-import"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Importar Vídeos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent>

@@ -389,6 +389,27 @@ paths:
         "404":
           description: Not found
 
+  /import/archive-org:
+    post:
+      operationId: importFromArchiveOrg
+      tags: [links]
+      summary: Import video links from an Archive.org item page
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ArchiveOrgImportInput"
+      responses:
+        "200":
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArchiveOrgImportResult"
+        "400":
+          description: Invalid URL or Archive.org item not found
+
   /stats:
     get:
       operationId: getStats
@@ -588,6 +609,34 @@ components:
           type: integer
         failed:
           type: integer
+
+    ArchiveOrgImportInput:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          minLength: 1
+          description: Archive.org item or collection page URL (e.g. https://archive.org/details/ZeroS01)
+        folderId:
+          type: integer
+          description: Optional folder ID to place the imported links in
+        preferFormat:
+          type: string
+          description: Preferred video format (e.g. "h.264", "MPEG4"). Falls back to best available.
+
+    ArchiveOrgImportResult:
+      type: object
+      required: [imported, skipped, links]
+      properties:
+        imported:
+          type: integer
+        skipped:
+          type: integer
+        links:
+          type: array
+          items:
+            $ref: "#/components/schemas/VideoLink"
 
     Stats:
       type: object
