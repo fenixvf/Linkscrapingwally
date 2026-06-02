@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, RefreshCw, Trash2, Link as LinkIcon, Copy, Filter } from "lucide-react";
+import { Plus, RefreshCw, Trash2, Link as LinkIcon, Copy, Filter, Search } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
@@ -17,9 +17,16 @@ export default function Links() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<ListLinksStatus | "all">("all");
+  const [search, setSearch] = useState("");
 
   const queryParams = statusFilter !== "all" ? { status: statusFilter } : {};
   const { data: links, isLoading } = useListLinks(queryParams, { query: { queryKey: getListLinksQueryKey(queryParams) } });
+
+  const filteredLinks = links?.filter((link) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return link.title.toLowerCase().includes(q) || (link.url && link.url.toLowerCase().includes(q));
+  });
   const { data: folders } = useListFolders({ query: { queryKey: getListFoldersQueryKey() } });
 
   const createLink = useCreateLink();
@@ -138,23 +145,35 @@ export default function Links() {
       </div>
 
       <Card className="border-border/50 bg-card/50 backdrop-blur">
-        <CardHeader className="flex flex-row items-center justify-between pb-2 border-b flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-muted-foreground" />
-            <Select value={statusFilter} onValueChange={(val: ListLinksStatus | "all") => setStatusFilter(val)}>
-              <SelectTrigger className="w-[180px] border-none bg-transparent h-8 -ml-3" data-testid="select-status-filter">
-                <SelectValue placeholder="Filtrar por status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Status</SelectItem>
-                <SelectItem value="active">Ativo</SelectItem>
-                <SelectItem value="expired">Expirado</SelectItem>
-                <SelectItem value="unknown">Desconhecido</SelectItem>
-                <SelectItem value="checking">Verificando</SelectItem>
-              </SelectContent>
-            </Select>
+        <CardHeader className="flex flex-col pb-2 border-b gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Pesquisar por título ou URL..."
+              className="pl-9"
+              data-testid="input-search"
+            />
           </div>
-          <div className="text-sm text-muted-foreground">{links?.length || 0} links encontrados</div>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <Select value={statusFilter} onValueChange={(val: ListLinksStatus | "all") => setStatusFilter(val)}>
+                <SelectTrigger className="w-[180px] border-none bg-transparent h-8 -ml-3" data-testid="select-status-filter">
+                  <SelectValue placeholder="Filtrar por status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Status</SelectItem>
+                  <SelectItem value="active">Ativo</SelectItem>
+                  <SelectItem value="expired">Expirado</SelectItem>
+                  <SelectItem value="unknown">Desconhecido</SelectItem>
+                  <SelectItem value="checking">Verificando</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-sm text-muted-foreground">{filteredLinks?.length || 0} links encontrados</div>
+          </div>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
           <Table>
@@ -172,7 +191,7 @@ export default function Links() {
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8">Carregando links...</TableCell>
                 </TableRow>
-              ) : links?.length === 0 ? (
+              ) : filteredLinks?.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
                     <LinkIcon className="w-8 h-8 mx-auto mb-3 opacity-50" />
@@ -180,7 +199,7 @@ export default function Links() {
                   </TableCell>
                 </TableRow>
               ) : (
-                links?.map((link) => (
+                filteredLinks?.map((link) => (
                   <TableRow key={link.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setLocation(`/links/${link.id}`)} data-testid={`row-link-${link.id}`}>
                     <TableCell className="font-medium pl-6">
                       <div>{link.title}</div>

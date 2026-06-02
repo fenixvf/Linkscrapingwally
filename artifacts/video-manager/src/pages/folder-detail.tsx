@@ -28,71 +28,87 @@ export default function FolderDetail() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
+  const [pageUrl, setPageUrl] = useState("");
 
   const handleCreate = () => {
-    createLink.mutate({ data: { title, url, folderId } }, {
-      onSuccess: () => {
+    createLink.mutate({ data: { title, url, pageUrl: pageUrl.trim() || undefined, folderId } }, {
+      onSuccess: (created) => {
         queryClient.invalidateQueries({ queryKey: getListLinksQueryKey({ folderId }) });
         queryClient.invalidateQueries({ queryKey: getGetFolderQueryKey(folderId) });
         setIsCreateOpen(false);
         setTitle("");
         setUrl("");
-        toast.success("Link added");
-      }
+        setPageUrl("");
+        toast.success("Link adicionado! Redirecionando...");
+        setLocation(`/links/${created.id}`);
+      },
+      onError: (err) => {
+        toast.error(`Erro ao adicionar link: ${err.message}`);
+      },
     });
   };
 
   const handleDelete = (id: number) => {
-    if (confirm("Are you sure you want to remove this link?")) {
+    if (confirm("Tem certeza que deseja remover este link?")) {
       deleteLink.mutate({ id }, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getListLinksQueryKey({ folderId }) });
           queryClient.invalidateQueries({ queryKey: getGetFolderQueryKey(folderId) });
-          toast.success("Link removed");
-        }
+          toast.success("Link removido");
+        },
+        onError: (err) => {
+          toast.error(`Erro ao remover link: ${err.message}`);
+        },
       });
     }
   };
 
   const handleCheck = (id: number) => {
     checkLink.mutate({ id }, {
-      onSuccess: () => {
+      onSuccess: (res) => {
         queryClient.invalidateQueries({ queryKey: getListLinksQueryKey({ folderId }) });
-        toast.success("Link checked");
-      }
+        if (res.refreshedUrl) {
+          toast.success("Link atualizado com sucesso");
+        } else {
+          toast.info(`Status: ${res.status}`);
+        }
+      },
+      onError: (err) => {
+        toast.error(`Erro ao verificar link: ${err.message}`);
+      },
     });
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("Copied to clipboard");
+    toast.success("Copiado para a área de transferência");
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "active": return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Active</Badge>;
-      case "expired": return <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">Expired</Badge>;
-      case "checking": return <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">Checking...</Badge>;
-      default: return <Badge variant="secondary">Unknown</Badge>;
+      case "active": return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Ativo</Badge>;
+      case "expired": return <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">Expirado</Badge>;
+      case "checking": return <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20">Verificando...</Badge>;
+      default: return <Badge variant="secondary">Desconhecido</Badge>;
     }
   };
 
   if (folderLoading) {
-    return <div className="p-8 text-center">Loading folder...</div>;
+    return <div className="p-8 text-center">Carregando pasta...</div>;
   }
 
   if (!folder) {
-    return <div className="p-8 text-center">Folder not found.</div>;
+    return <div className="p-8 text-center">Pasta não encontrada.</div>;
   }
 
   return (
-    <div className="p-8 max-w-6xl mx-auto w-full space-y-8">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto w-full space-y-8">
       <Button variant="ghost" onClick={() => setLocation("/folders")} className="-ml-4 mb-4 text-muted-foreground">
         <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Folders
+        Voltar para Pastas
       </Button>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <div className="flex items-center gap-3">
             <Folder className="w-8 h-8 text-primary" />
@@ -104,41 +120,44 @@ export default function FolderDetail() {
         </div>
         <Button onClick={() => setIsCreateOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
-          Add Link
+          Adicionar Link
         </Button>
       </div>
 
       <Card className="border-border/50 bg-card/50 backdrop-blur">
         <CardHeader>
-          <CardTitle>Links in {folder.name}</CardTitle>
-          <CardDescription>Manage and monitor video links in this folder.</CardDescription>
+          <CardTitle>Links em {folder.name}</CardTitle>
+          <CardDescription>Gerencie e monitore os links de vídeo desta pasta.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
+                <TableHead>Título</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>URL</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {linksLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">Loading links...</TableCell>
+                  <TableCell colSpan={4} className="text-center py-8">Carregando links...</TableCell>
                 </TableRow>
               ) : links?.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                     <LinkIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    No links in this folder.
+                    Nenhum link nesta pasta.
                   </TableCell>
                 </TableRow>
               ) : (
                 links?.map((link) => (
                   <TableRow key={link.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setLocation(`/links/${link.id}`)}>
-                    <TableCell className="font-medium">{link.title}</TableCell>
+                    <TableCell className="font-medium">
+                      <div>{link.title}</div>
+                      {link.pageUrl && <div className="text-xs text-muted-foreground mt-0.5">com página fonte</div>}
+                    </TableCell>
                     <TableCell>{getStatusBadge(link.status)}</TableCell>
                     <TableCell className="font-mono text-xs max-w-[200px] truncate" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2">
@@ -152,7 +171,7 @@ export default function FolderDetail() {
                       <div className="flex items-center justify-end gap-2">
                         <Button variant="outline" size="sm" onClick={() => handleCheck(link.id)} disabled={checkLink.isPending}>
                           <RefreshCw className={`w-3 h-3 mr-1 ${checkLink.isPending ? 'animate-spin' : ''}`} />
-                          Check
+                          Verificar
                         </Button>
                         <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(link.id)}>
                           <Trash2 className="w-4 h-4" />
@@ -170,21 +189,29 @@ export default function FolderDetail() {
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Link to Folder</DialogTitle>
+            <DialogTitle>Adicionar Link à Pasta</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Title</Label>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Intro Video" />
+              <Label>Título</Label>
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Aula 01 - Introdução" />
             </div>
             <div className="space-y-2">
-              <Label>URL</Label>
-              <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://..." type="url" />
+              <Label>URL do Vídeo</Label>
+              <Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://cdn.exemplo.com/video.mp4" type="url" />
+              <p className="text-xs text-muted-foreground">Link direto do arquivo de vídeo (pode conter token de expiração).</p>
+            </div>
+            <div className="space-y-2">
+              <Label>
+                URL da Página <span className="text-muted-foreground font-normal">(opcional)</span>
+              </Label>
+              <Input value={pageUrl} onChange={(e) => setPageUrl(e.target.value)} placeholder="https://site.com/pagina-do-video" type="url" />
+              <p className="text-xs text-muted-foreground">Quando o link expirar, o sistema abrirá esta página e extrairá o novo URL do vídeo automaticamente.</p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreate} disabled={!title || !url || createLink.isPending}>Add Link</Button>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreate} disabled={!title || !url || createLink.isPending}>Adicionar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
