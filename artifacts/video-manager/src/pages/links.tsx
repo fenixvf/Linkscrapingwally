@@ -279,11 +279,15 @@ export default function Links() {
                 value={importUrl}
                 onChange={(e) => setImportUrl(e.target.value)}
                 placeholder="https://archive.org/details/ZeroS01"
-                type="url"
+                type="text"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 data-testid="input-import-url"
               />
               <p className="text-xs text-muted-foreground">
                 Ex: <span className="font-mono">https://archive.org/details/ZeroS01</span>
+                {" "}— ou só o identificador: <span className="font-mono">ZeroS01</span>
               </p>
             </div>
             <div className="space-y-2">

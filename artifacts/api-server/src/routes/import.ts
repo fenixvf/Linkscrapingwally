@@ -32,11 +32,27 @@ function isVideoFile(format: string): boolean {
   return VIDEO_FORMATS.some((v) => f.includes(v));
 }
 
-function extractIdentifier(url: string): string | null {
+function extractIdentifier(raw: string): string | null {
+  const url = raw.trim();
+  if (!url) return null;
+
+  // Accept plain identifier with no URL (e.g. "ZeroS01")
+  if (/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(url)) return url;
+
+  // Accept partial paths like "details/ZeroS01"
+  const pathOnlyMatch = url.match(/^(?:details\/)?([A-Za-z0-9][A-Za-z0-9._-]*)$/);
+  if (pathOnlyMatch) return pathOnlyMatch[1];
+
+  // Normalize: add https:// if missing a protocol
+  let normalized = url;
+  if (!normalized.match(/^https?:\/\//i)) {
+    normalized = "https://" + normalized;
+  }
+
   try {
-    const u = new URL(url);
-    if (!u.hostname.includes("archive.org")) return null;
-    const match = u.pathname.match(/^\/details\/([^/]+)/);
+    const u = new URL(normalized);
+    if (!u.hostname.toLowerCase().includes("archive.org")) return null;
+    const match = u.pathname.match(/\/details\/([^/?#]+)/);
     return match?.[1] ?? null;
   } catch {
     return null;
