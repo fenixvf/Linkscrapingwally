@@ -120,7 +120,8 @@ export default function LinkDetail() {
       return;
     }
     updateLink.mutate({ id, data: { episodeOrder: parsed } }, {
-      onSuccess: () => { invalidateLink(); setIsEditingEpisode(false); toast.success("Episódio atualizado"); }
+      onSuccess: () => { invalidateLink(); setIsEditingEpisode(false); toast.success("Episódio atualizado"); },
+      onError: (err) => { toast.error(`Erro ao salvar: ${err.message}`); },
     });
   };
 
