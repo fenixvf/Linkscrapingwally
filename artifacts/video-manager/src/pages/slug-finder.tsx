@@ -90,7 +90,15 @@ async function probeSlug(
     const directUrls: string[] = [];
 
     for (const r of mp4s) {
+      // Prefer r.url; if absent, decode it from the proxyUrl parameter
       let direct = r.url ?? "";
+      if (!direct && r.proxyUrl) {
+        const proxyParam = r.proxyUrl.split("/?proxy=")[1];
+        if (proxyParam) {
+          try { direct = decodeURIComponent(proxyParam); } catch { direct = proxyParam; }
+        }
+      }
+
       if (isDub) {
         // Insert /Dub/ before the filename
         const i = direct.lastIndexOf("/");

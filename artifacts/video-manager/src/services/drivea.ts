@@ -183,7 +183,15 @@ export const loadDriveA = async (
       let sources = picked.sources;
       if (isDub) {
         sources = sources.map(s => {
-          const dubUrl = toDubUrl(s.directUrl ?? s.url);
+          // Prefer directUrl; if absent, decode it from the proxy URL parameter
+          let rawDirect = s.directUrl;
+          if (!rawDirect) {
+            const proxyParam = s.url.split('/?proxy=')[1];
+            if (proxyParam) {
+              try { rawDirect = decodeURIComponent(proxyParam); } catch { rawDirect = proxyParam; }
+            }
+          }
+          const dubUrl = toDubUrl(rawDirect ?? s.url);
           return {
             ...s,
             directUrl: dubUrl,
