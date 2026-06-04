@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, asc } from "drizzle-orm";
 import { db, videoLinksTable, foldersTable } from "@workspace/db";
 import {
   ListLinksQueryParams,
@@ -39,6 +39,7 @@ async function getLinkWithFolder(id: number) {
       activeBackupId: videoLinksTable.activeBackupId,
       status: videoLinksTable.status,
       notes: videoLinksTable.notes,
+      episodeOrder: videoLinksTable.episodeOrder,
       lastChecked: videoLinksTable.lastChecked,
       createdAt: videoLinksTable.createdAt,
       updatedAt: videoLinksTable.updatedAt,
@@ -80,6 +81,7 @@ router.get("/links", async (req, res): Promise<void> => {
       activeBackupId: videoLinksTable.activeBackupId,
       status: videoLinksTable.status,
       notes: videoLinksTable.notes,
+      episodeOrder: videoLinksTable.episodeOrder,
       lastChecked: videoLinksTable.lastChecked,
       createdAt: videoLinksTable.createdAt,
       updatedAt: videoLinksTable.updatedAt,
@@ -90,7 +92,11 @@ router.get("/links", async (req, res): Promise<void> => {
     .from(videoLinksTable)
     .leftJoin(foldersTable, eq(foldersTable.id, videoLinksTable.folderId))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(videoLinksTable.createdAt);
+    .orderBy(
+      asc(sql`CASE WHEN ${videoLinksTable.episodeOrder} IS NULL THEN 1 ELSE 0 END`),
+      asc(videoLinksTable.episodeOrder),
+      asc(videoLinksTable.createdAt),
+    );
 
   res.json(rows.map((r) => ListLinksResponseItem.parse(r)));
 });
