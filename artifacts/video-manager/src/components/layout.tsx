@@ -13,7 +13,7 @@ import {
   SidebarGroupLabel,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { LayoutDashboard, FolderOpen, Link as LinkIcon, Activity } from "lucide-react";
+import { LayoutDashboard, FolderOpen, Link as LinkIcon, Activity, Film } from "lucide-react";
 import { ReactNode } from "react";
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -23,6 +23,7 @@ export function Layout({ children }: { children: ReactNode }) {
     { title: "Dashboard", icon: LayoutDashboard, url: "/" },
     { title: "Folders", icon: FolderOpen, url: "/folders" },
     { title: "All Links", icon: LinkIcon, url: "/links" },
+    { title: "DriveA Player", icon: Film, url: "/drivea" },
   ];
 
   return (

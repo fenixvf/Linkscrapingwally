@@ -10,6 +10,7 @@ import Folders from "@/pages/folders";
 import FolderDetail from "@/pages/folder-detail";
 import Links from "@/pages/links";
 import LinkDetail from "@/pages/link-detail";
+import DriveAPlayer from "@/pages/drivea-player";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +30,7 @@ function Router() {
         <Route path="/folders/:id" component={FolderDetail} />
         <Route path="/links" component={Links} />
         <Route path="/links/:id" component={LinkDetail} />
+        <Route path="/drivea" component={DriveAPlayer} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
