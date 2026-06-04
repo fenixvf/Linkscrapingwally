@@ -49,43 +49,45 @@ episodes.forEach(ep => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-2xl max-h-[90dvh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Share2 className="w-5 h-5 text-primary" />
-            Distribuir pasta: {folderName}
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Share2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary flex-shrink-0" />
+            <span className="truncate">Distribuir: {folderName}</span>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             Use estas URLs para integrar os vídeos desta pasta em qualquer site. Os links sempre apontam para a versão mais recente — o VLM renova automaticamente quando expiram.
           </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="playlist" className="mt-2">
           <TabsList className="w-full">
-            <TabsTrigger value="playlist" className="flex-1 flex items-center gap-1.5">
-              <List className="w-3.5 h-3.5" />
-              Playlist JSON
+            <TabsTrigger value="playlist" className="flex-1 flex items-center justify-center gap-1.5">
+              <List className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden xs:inline sm:inline">Playlist </span>JSON
             </TabsTrigger>
-            <TabsTrigger value="episode" className="flex-1 flex items-center gap-1.5">
-              <LinkIcon className="w-3.5 h-3.5" />
-              Por episódio
+            <TabsTrigger value="episode" className="flex-1 flex items-center justify-center gap-1.5">
+              <LinkIcon className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden xs:inline sm:inline">Por </span>Episódio
             </TabsTrigger>
-            <TabsTrigger value="embed" className="flex-1 flex items-center gap-1.5">
-              <Code2 className="w-3.5 h-3.5" />
-              Embed iframe
+            <TabsTrigger value="embed" className="flex-1 flex items-center justify-center gap-1.5">
+              <Code2 className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="hidden xs:inline sm:inline">Embed </span>iframe
             </TabsTrigger>
           </TabsList>
 
           {/* Playlist JSON */}
           <TabsContent value="playlist" className="space-y-4 mt-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Endpoint público que retorna todos os episódios da pasta em ordem, com o link de serve permanente de cada um.
             </p>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">URL da Playlist</Label>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs bg-muted px-3 py-2 rounded-lg font-mono break-all">{playlistUrl}</code>
-                <Button variant="outline" size="sm" onClick={() => copy(playlistUrl)} className="flex-shrink-0">
+                <div className="flex-1 min-w-0 bg-muted px-3 py-2 rounded-lg overflow-x-auto">
+                  <code className="text-xs font-mono whitespace-nowrap">{playlistUrl}</code>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => copy(playlistUrl)} className="flex-shrink-0 h-8 w-8 p-0">
                   <Copy className="w-3.5 h-3.5" />
                 </Button>
               </div>
@@ -93,7 +95,7 @@ episodes.forEach(ep => {
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Exemplo de uso (JavaScript)</Label>
               <div className="relative">
-                <pre className="text-xs bg-muted px-3 py-3 rounded-lg font-mono overflow-x-auto whitespace-pre">{fetchSnippet}</pre>
+                <pre className="text-xs bg-muted px-3 py-3 pr-8 rounded-lg font-mono overflow-x-auto whitespace-pre">{fetchSnippet}</pre>
                 <Button variant="ghost" size="sm" className="absolute top-2 right-2 h-6 w-6 p-0" onClick={() => copy(fetchSnippet)}>
                   <Copy className="w-3 h-3" />
                 </Button>
@@ -108,33 +110,37 @@ episodes.forEach(ep => {
 
           {/* Por episódio */}
           <TabsContent value="episode" className="space-y-4 mt-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Redireciona direto para o vídeo do episódio N. Use como <code className="bg-muted px-1 rounded">src</code> de um <code className="bg-muted px-1 rounded">&lt;video&gt;</code> ou botão de download.
             </p>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">URL de Serve (substitua {"{n}"} pelo número)</Label>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs bg-muted px-3 py-2 rounded-lg font-mono break-all">{episodeServeUrl}</code>
-                <Button variant="outline" size="sm" onClick={() => copy(episodeServeUrl)} className="flex-shrink-0">
+                <div className="flex-1 min-w-0 bg-muted px-3 py-2 rounded-lg overflow-x-auto">
+                  <code className="text-xs font-mono whitespace-nowrap">{episodeServeUrl}</code>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => copy(episodeServeUrl)} className="flex-shrink-0 h-8 w-8 p-0">
                   <Copy className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>
-            <div className="rounded-lg border border-border/50 bg-primary/5 border-primary/20 p-3 text-xs text-muted-foreground">
-              Exemplo: <code className="font-mono text-primary">{`${API_BASE}/api/folders/${folderId}/episode/1`}</code> serve o episódio 1.
+            <div className="rounded-lg border border-border/50 bg-primary/5 border-primary/20 p-3 text-xs text-muted-foreground overflow-hidden">
+              Exemplo: <code className="font-mono text-primary break-all">{`${API_BASE}/api/folders/${folderId}/episode/1`}</code> serve o episódio 1.
             </div>
           </TabsContent>
 
           {/* Embed iframe */}
           <TabsContent value="embed" className="space-y-4 mt-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Player HTML embutível via iframe. Funciona em qualquer site sem configuração extra.
             </p>
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">URL do Embed (substitua {"{n}"} pelo número)</Label>
               <div className="flex items-center gap-2">
-                <code className="flex-1 text-xs bg-muted px-3 py-2 rounded-lg font-mono break-all">{episodeEmbedUrl}</code>
-                <Button variant="outline" size="sm" onClick={() => copy(episodeEmbedUrl)} className="flex-shrink-0">
+                <div className="flex-1 min-w-0 bg-muted px-3 py-2 rounded-lg overflow-x-auto">
+                  <code className="text-xs font-mono whitespace-nowrap">{episodeEmbedUrl}</code>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => copy(episodeEmbedUrl)} className="flex-shrink-0 h-8 w-8 p-0">
                   <Copy className="w-3.5 h-3.5" />
                 </Button>
               </div>
@@ -142,7 +148,7 @@ episodes.forEach(ep => {
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground uppercase tracking-wider">Código HTML</Label>
               <div className="relative">
-                <pre className="text-xs bg-muted px-3 py-3 rounded-lg font-mono overflow-x-auto whitespace-pre">{iframeSnippet}</pre>
+                <pre className="text-xs bg-muted px-3 py-3 pr-8 rounded-lg font-mono overflow-x-auto whitespace-pre">{iframeSnippet}</pre>
                 <Button variant="ghost" size="sm" className="absolute top-2 right-2 h-6 w-6 p-0" onClick={() => copy(iframeSnippet)}>
                   <Copy className="w-3 h-3" />
                 </Button>
