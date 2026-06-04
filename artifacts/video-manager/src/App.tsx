@@ -11,6 +11,7 @@ import FolderDetail from "@/pages/folder-detail";
 import Links from "@/pages/links";
 import LinkDetail from "@/pages/link-detail";
 import DriveAPlayer from "@/pages/drivea-player";
+import SlugFinder from "@/pages/slug-finder";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,6 +32,7 @@ function Router() {
         <Route path="/links" component={Links} />
         <Route path="/links/:id" component={LinkDetail} />
         <Route path="/drivea" component={DriveAPlayer} />
+        <Route path="/slug-finder" component={SlugFinder} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
