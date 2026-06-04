@@ -3,6 +3,7 @@
  * Configurable via AUTO_CHECK_INTERVAL_HOURS (default: 6).
  */
 import { db, videoLinksTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { runLinkCheck } from "./checkLink";
 import { logger } from "./logger";
 
