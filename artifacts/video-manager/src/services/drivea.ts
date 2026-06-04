@@ -187,7 +187,7 @@ export const loadDriveA = async (
           return {
             ...s,
             directUrl: dubUrl,
-            url: `${DA}/?proxy=${encodeURIComponent(dubUrl)}`,
+            url: `${DA}/?proxy=${dubUrl}`,
           };
         });
       }
