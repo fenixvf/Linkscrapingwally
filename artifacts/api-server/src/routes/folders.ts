@@ -153,6 +153,57 @@ router.delete("/folders/:id", async (req, res): Promise<void> => {
 });
 
 /**
+ * GET /folders/:folderId/episodes
+ * Returns all episodes in a folder in order, formatted for Zarumi import.
+ * Each item has: episodeNumber, title, videoSlug (serve URL).
+ * Requires X-VLM-Base header (or vlmBase query param) so it can build absolute serve URLs.
+ */
+router.get("/folders/:folderId/episodes", async (req, res): Promise<void> => {
+  const folderId = parseInt((req.params as Record<string, string>)["folderId"] ?? "", 10);
+  if (!isFinite(folderId) || folderId <= 0) {
+    res.status(400).json({ error: "Invalid folderId" });
+    return;
+  }
+
+  const baseUrl = (
+    (req.query["vlmBase"] as string | undefined) ??
+    req.headers["x-vlm-base"] ??
+    `${req.protocol}://${req.get("host")}`
+  ) as string;
+
+  const links = await db
+    .select({
+      id: videoLinksTable.id,
+      title: videoLinksTable.title,
+      episodeOrder: videoLinksTable.episodeOrder,
+      createdAt: videoLinksTable.createdAt,
+    })
+    .from(videoLinksTable)
+    .where(eq(videoLinksTable.folderId, folderId))
+    .orderBy(
+      asc(sql`CASE WHEN ${videoLinksTable.episodeOrder} IS NULL THEN 1 ELSE 0 END`),
+      asc(videoLinksTable.episodeOrder),
+      asc(videoLinksTable.createdAt),
+    );
+
+  if (links.length === 0) {
+    res.status(404).json({ error: "Folder not found or empty" });
+    return;
+  }
+
+  const episodes = links.map((link, index) => ({
+    episodeNumber: link.episodeOrder ?? index + 1,
+    title: link.title,
+    videoSlug: `${baseUrl}/api/links/${link.id}/serve`,
+    duration: null,
+    customThumbnailUrl: null,
+  }));
+
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.json(episodes);
+});
+
+/**
  * GET /folders/:folderId/episode/:number
  * Redirects (302) to the active video URL for episode N in a folder.
  * Episodes are ordered by episodeOrder (nulls last, then by createdAt).
