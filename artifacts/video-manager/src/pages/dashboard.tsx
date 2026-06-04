@@ -21,12 +21,14 @@ interface SchedulerStatus {
   nextRunAt: string | null;
 }
 
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, "") ?? "";
+
 function useScheduler() {
   const [status, setStatus] = useState<SchedulerStatus | null>(null);
 
   const fetch_ = useCallback(async () => {
     try {
-      const res = await fetch("/api/scheduler");
+      const res = await fetch(`${API_BASE}/api/scheduler`);
       if (res.ok) setStatus(await res.json());
     } catch { /* ignore */ }
   }, []);
@@ -70,7 +72,7 @@ export default function Dashboard() {
   const handleTrigger = async () => {
     setTriggering(true);
     try {
-      const res = await fetch("/api/scheduler/run", { method: "POST" });
+      const res = await fetch(`${API_BASE}/api/scheduler/run`, { method: "POST" });
       if (res.ok) {
         toast.success("Verificação automática iniciada — aguarde...");
         setTimeout(() => { refetch(); refreshScheduler(); }, 3000);
