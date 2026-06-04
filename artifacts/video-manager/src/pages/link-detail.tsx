@@ -51,6 +51,8 @@ export default function LinkDetail() {
   const [urlInput, setUrlInput] = useState("");
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleInput, setTitleInput] = useState("");
+  const [isEditingEpisode, setIsEditingEpisode] = useState(false);
+  const [episodeInput, setEpisodeInput] = useState("");
 
   const [isIntegrationOpen, setIsIntegrationOpen] = useState(false);
 
@@ -107,6 +109,18 @@ export default function LinkDetail() {
   const handleSavePageUrl = () => {
     updateLink.mutate({ id, data: { pageUrl: pageUrlInput.trim() } }, {
       onSuccess: () => { invalidateLink(); setIsEditingPageUrl(false); toast.success("URL da página salva"); }
+    });
+  };
+
+  const handleSaveEpisode = () => {
+    const val = episodeInput.trim();
+    const parsed = val === "" ? null : parseInt(val, 10);
+    if (val !== "" && (isNaN(parsed!) || parsed! < 1)) {
+      toast.error("Número de episódio inválido");
+      return;
+    }
+    updateLink.mutate({ id, data: { episodeOrder: parsed } }, {
+      onSuccess: () => { invalidateLink(); setIsEditingEpisode(false); toast.success("Episódio atualizado"); }
     });
   };
 
@@ -477,6 +491,45 @@ export default function LinkDetail() {
               )}
             </CardContent>
           </Card>
+
+          {/* Episode order */}
+          {link.folderId && (
+            <Card className="border-border/50 bg-card/50 backdrop-blur">
+              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Nº do Episódio</CardTitle>
+                {!isEditingEpisode && (
+                  <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => { setEpisodeInput(link.episodeOrder != null ? String(link.episodeOrder) : ""); setIsEditingEpisode(true); }}>
+                    {link.episodeOrder != null ? "Editar" : "Definir"}
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent>
+                {isEditingEpisode ? (
+                  <div className="space-y-2">
+                    <Input
+                      value={episodeInput}
+                      onChange={(e) => setEpisodeInput(e.target.value)}
+                      placeholder="Ex: 1, 2, 3..."
+                      type="number"
+                      min={1}
+                      className="bg-background/50 text-sm"
+                    />
+                    <p className="text-xs text-muted-foreground">Define a posição deste link como episódio na pasta. Use via <code>/folders/{link.folderId}/episode/N</code></p>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => setIsEditingEpisode(false)}>Cancelar</Button>
+                      <Button size="sm" onClick={handleSaveEpisode} disabled={updateLink.isPending}>Salvar</Button>
+                    </div>
+                  </div>
+                ) : link.episodeOrder != null ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-bold text-foreground">Ep. {link.episodeOrder}</span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">Sem número definido.</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Notes */}
           <Card className="border-border/50 bg-card/50 backdrop-blur">

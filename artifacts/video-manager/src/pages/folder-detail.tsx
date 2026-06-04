@@ -133,6 +133,7 @@ export default function FolderDetail() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-12">Ep.</TableHead>
                 <TableHead>Título</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>URL</TableHead>
@@ -142,11 +143,11 @@ export default function FolderDetail() {
             <TableBody>
               {linksLoading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">Carregando links...</TableCell>
+                  <TableCell colSpan={5} className="text-center py-8">Carregando links...</TableCell>
                 </TableRow>
               ) : links?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     <LinkIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     Nenhum link nesta pasta.
                   </TableCell>
@@ -154,6 +155,9 @@ export default function FolderDetail() {
               ) : (
                 links?.map((link) => (
                   <TableRow key={link.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => setLocation(`/links/${link.id}`)}>
+                    <TableCell className="text-muted-foreground text-sm font-mono">
+                      {link.episodeOrder != null ? link.episodeOrder : <span className="opacity-30">—</span>}
+                    </TableCell>
                     <TableCell className="font-medium">
                       <div>{link.title}</div>
                       {link.pageUrl && <div className="text-xs text-muted-foreground mt-0.5">com página fonte</div>}

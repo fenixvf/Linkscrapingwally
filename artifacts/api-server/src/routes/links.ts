@@ -189,6 +189,7 @@ router.patch("/links/:id", async (req, res): Promise<void> => {
   }
   if (parsed.data.pageUrl !== undefined) updates.pageUrl = parsed.data.pageUrl;
   if (parsed.data.notes !== undefined) updates.notes = parsed.data.notes;
+  if (parsed.data.episodeOrder !== undefined) updates.episodeOrder = parsed.data.episodeOrder;
   if (parsed.data.status !== undefined) updates.status = parsed.data.status;
 
   const [updated] = await db

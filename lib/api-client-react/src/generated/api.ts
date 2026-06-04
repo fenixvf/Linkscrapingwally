@@ -1376,6 +1376,170 @@ export const useMoveLink = <TError = ErrorType<void>,
       return useMutation(getMoveLinkMutationOptions(options));
     }
 
+export const getGetFolderEpisodeUrl = (folderId: number,
+    number: number,) => {
+
+
+
+
+  return `/api/folders/${folderId}/episode/${number}`
+}
+
+/**
+ * @summary Redirect to the video URL for a given episode number in a folder
+ */
+export const getFolderEpisode = async (folderId: number,
+    number: number, options?: RequestInit): Promise<unknown> => {
+
+  return customFetch<unknown>(getGetFolderEpisodeUrl(folderId,number),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFolderEpisodeQueryKey = (folderId: number,
+    number: number,) => {
+    return [
+    `/api/folders/${folderId}/episode/${number}`
+    ] as const;
+    }
+
+
+export const getGetFolderEpisodeQueryOptions = <TData = Awaited<ReturnType<typeof getFolderEpisode>>, TError = ErrorType<void>>(folderId: number,
+    number: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFolderEpisode>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFolderEpisodeQueryKey(folderId,number);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFolderEpisode>>> = ({ signal }) => getFolderEpisode(folderId,number, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(folderId && number), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFolderEpisode>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFolderEpisodeQueryResult = NonNullable<Awaited<ReturnType<typeof getFolderEpisode>>>
+export type GetFolderEpisodeQueryError = ErrorType<void>
+
+
+/**
+ * @summary Redirect to the video URL for a given episode number in a folder
+ */
+
+export function useGetFolderEpisode<TData = Awaited<ReturnType<typeof getFolderEpisode>>, TError = ErrorType<void>>(
+ folderId: number,
+    number: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFolderEpisode>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFolderEpisodeQueryOptions(folderId,number,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetFolderEpisodeEmbedUrl = (folderId: number,
+    number: number,) => {
+
+
+
+
+  return `/api/folders/${folderId}/episode/${number}/embed`
+}
+
+/**
+ * @summary Embeddable player for a given episode number in a folder
+ */
+export const getFolderEpisodeEmbed = async (folderId: number,
+    number: number, options?: RequestInit): Promise<string> => {
+
+  return customFetch<string>(getGetFolderEpisodeEmbedUrl(folderId,number),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFolderEpisodeEmbedQueryKey = (folderId: number,
+    number: number,) => {
+    return [
+    `/api/folders/${folderId}/episode/${number}/embed`
+    ] as const;
+    }
+
+
+export const getGetFolderEpisodeEmbedQueryOptions = <TData = Awaited<ReturnType<typeof getFolderEpisodeEmbed>>, TError = ErrorType<void>>(folderId: number,
+    number: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFolderEpisodeEmbed>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFolderEpisodeEmbedQueryKey(folderId,number);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFolderEpisodeEmbed>>> = ({ signal }) => getFolderEpisodeEmbed(folderId,number, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(folderId && number), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFolderEpisodeEmbed>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetFolderEpisodeEmbedQueryResult = NonNullable<Awaited<ReturnType<typeof getFolderEpisodeEmbed>>>
+export type GetFolderEpisodeEmbedQueryError = ErrorType<void>
+
+
+/**
+ * @summary Embeddable player for a given episode number in a folder
+ */
+
+export function useGetFolderEpisodeEmbed<TData = Awaited<ReturnType<typeof getFolderEpisodeEmbed>>, TError = ErrorType<void>>(
+ folderId: number,
+    number: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getFolderEpisodeEmbed>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetFolderEpisodeEmbedQueryOptions(folderId,number,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
 export const getImportFromArchiveOrgUrl = () => {
 
 

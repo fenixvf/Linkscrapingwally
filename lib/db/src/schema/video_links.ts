@@ -13,6 +13,7 @@ export const videoLinksTable = pgTable("video_links", {
   activeBackupId: integer("active_backup_id"),
   status: text("status").notNull().default("unknown"),
   notes: text("notes"),
+  episodeOrder: integer("episode_order"),
   lastChecked: timestamp("last_checked", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

@@ -113,6 +113,7 @@ export const ListLinksResponseItem = zod.object({
   "backupCount": zod.number(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
+  "episodeOrder": zod.number().nullish(),
   "lastChecked": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -155,6 +156,7 @@ export const GetLinkResponse = zod.object({
   "backupCount": zod.number(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
+  "episodeOrder": zod.number().nullish(),
   "lastChecked": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -176,6 +178,7 @@ export const UpdateLinkBody = zod.object({
   "url": zod.string().optional(),
   "pageUrl": zod.string().optional(),
   "notes": zod.string().optional(),
+  "episodeOrder": zod.number().nullish(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']).optional()
 })
 
@@ -191,6 +194,7 @@ export const UpdateLinkResponse = zod.object({
   "backupCount": zod.number(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
+  "episodeOrder": zod.number().nullish(),
   "lastChecked": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -224,6 +228,7 @@ export const CheckLinkResponse = zod.object({
   "backupCount": zod.number(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
+  "episodeOrder": zod.number().nullish(),
   "lastChecked": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -341,9 +346,28 @@ export const MoveLinkResponse = zod.object({
   "backupCount": zod.number(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
+  "episodeOrder": zod.number().nullish(),
   "lastChecked": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Redirect to the video URL for a given episode number in a folder
+ */
+export const GetFolderEpisodeParams = zod.object({
+  "folderId": zod.coerce.number(),
+  "number": zod.coerce.number()
+})
+
+
+/**
+ * @summary Embeddable player for a given episode number in a folder
+ */
+export const GetFolderEpisodeEmbedParams = zod.object({
+  "folderId": zod.coerce.number(),
+  "number": zod.coerce.number()
 })
 
 
@@ -374,6 +398,7 @@ export const ImportFromArchiveOrgResponse = zod.object({
   "backupCount": zod.number(),
   "status": zod.enum(['active', 'expired', 'checking', 'unknown']),
   "notes": zod.string().nullish(),
+  "episodeOrder": zod.number().nullish(),
   "lastChecked": zod.coerce.date().nullish(),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()

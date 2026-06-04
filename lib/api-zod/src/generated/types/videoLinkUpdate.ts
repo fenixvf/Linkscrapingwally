@@ -13,5 +13,7 @@ export interface VideoLinkUpdate {
   url?: string;
   pageUrl?: string;
   notes?: string;
+  /** @nullable */
+  episodeOrder?: number | null;
   status?: VideoLinkUpdateStatus;
 }

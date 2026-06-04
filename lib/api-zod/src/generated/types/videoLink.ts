@@ -26,6 +26,8 @@ export interface VideoLink {
   /** @nullable */
   notes?: string | null;
   /** @nullable */
+  episodeOrder?: number | null;
+  /** @nullable */
   lastChecked?: Date | null;
   createdAt: Date;
   updatedAt: Date;

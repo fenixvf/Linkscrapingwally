@@ -389,6 +389,54 @@ paths:
         "404":
           description: Not found
 
+  /folders/{folderId}/episode/{number}:
+    get:
+      operationId: getFolderEpisode
+      tags: [folders]
+      summary: Redirect to the video URL for a given episode number in a folder
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "302":
+          description: Redirect to video URL
+        "404":
+          description: Episode not found
+
+  /folders/{folderId}/episode/{number}/embed:
+    get:
+      operationId: getFolderEpisodeEmbed
+      tags: [folders]
+      summary: Embeddable player for a given episode number in a folder
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: HTML player page
+          content:
+            text/html:
+              schema:
+                type: string
+        "404":
+          description: Episode not found
+
   /import/archive-org:
     post:
       operationId: importFromArchiveOrg
@@ -546,6 +594,8 @@ components:
           enum: [active, expired, checking, unknown]
         notes:
           type: ["string", "null"]
+        episodeOrder:
+          type: ["integer", "null"]
         lastChecked:
           type: ["string", "null"]
           format: date-time
@@ -585,6 +635,8 @@ components:
           type: string
         notes:
           type: string
+        episodeOrder:
+          type: ["integer", "null"]
         status:
           type: string
           enum: [active, expired, checking, unknown]

@@ -96,6 +96,8 @@ export interface VideoLink {
   /** @nullable */
   notes?: string | null;
   /** @nullable */
+  episodeOrder?: number | null;
+  /** @nullable */
   lastChecked?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -127,6 +129,8 @@ export interface VideoLinkUpdate {
   url?: string;
   pageUrl?: string;
   notes?: string;
+  /** @nullable */
+  episodeOrder?: number | null;
   status?: VideoLinkUpdateStatus;
 }
 
