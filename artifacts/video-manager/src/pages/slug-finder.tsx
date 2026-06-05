@@ -55,70 +55,84 @@ function extractSlug(input: string): string | null {
   }
 }
 
+type WorkerResult = {
+  type?: string;
+  proxyUrl?: string;
+  url?: string;
+  label?: string;
+};
+
+async function fetchWorkerResults(slug: string, ep: number): Promise<WorkerResult[]> {
+  const epUrl = `${AD_BASE}/episodio/${slug}-episodio-${epStr(ep)}`;
+  const workerUrl = `${DA}/?url=${encodeURIComponent(epUrl)}`;
+  try {
+    const res = await fetch(workerUrl, { signal: AbortSignal.timeout(20000) });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { success: boolean; results?: WorkerResult[] };
+    if (data.success && data.results?.length) return data.results;
+  } catch { /* ignore */ }
+  return [];
+}
+
+function extractDirect(r: WorkerResult): string {
+  if (r.url) return r.url;
+  if (r.proxyUrl) {
+    const param = r.proxyUrl.split("/?proxy=")[1];
+    if (param) {
+      try { return decodeURIComponent(param); } catch { return param; }
+    }
+  }
+  return "";
+}
+
+function toDubUrl(url: string): string {
+  if (url.includes("/Dub/")) return url;
+  const i = url.lastIndexOf("/");
+  return i !== -1 ? url.slice(0, i) + "/Dub" + url.slice(i) : url;
+}
+
 async function probeSlug(
   slug: string,
   ep: number,
   isDub: boolean
 ): Promise<{ found: boolean; proxyUrls: string[]; directUrls: string[] }> {
-  const epNum = epStr(ep);
-  const epUrl = `${AD_BASE}/episodio/${slug}-episodio-${epNum}`;
-  const workerUrl = `${DA}/?url=${encodeURIComponent(epUrl)}`;
+  const proxyUrls: string[] = [];
+  const directUrls: string[] = [];
 
-  try {
-    const res = await fetch(workerUrl, { signal: AbortSignal.timeout(20000) });
-    if (!res.ok) return { found: false, proxyUrls: [], directUrls: [] };
-
-    const data = (await res.json()) as {
-      success: boolean;
-      results?: Array<{
-        type?: string;
-        proxyUrl?: string;
-        url?: string;
-        label?: string;
-        isBlogger?: boolean;
-        resolveUrl?: string;
-      }>;
-    };
-
-    if (!data.success || !data.results?.length) {
-      return { found: false, proxyUrls: [], directUrls: [] };
+  if (!isDub) {
+    // Sub: use results directly
+    const results = await fetchWorkerResults(slug, ep);
+    for (const r of results.filter((r) => r.type === "mp4" && (r.proxyUrl || r.url))) {
+      const direct = extractDirect(r);
+      proxyUrls.push(r.proxyUrl ?? `${DA}/?proxy=${encodeURIComponent(direct)}`);
+      directUrls.push(direct);
     }
-
-    const mp4s = data.results.filter((r) => r.type === "mp4" && (r.proxyUrl || r.url));
-
-    const proxyUrls: string[] = [];
-    const directUrls: string[] = [];
-
-    for (const r of mp4s) {
-      // Prefer r.url; if absent, decode it from the proxyUrl parameter
-      let direct = r.url ?? "";
-      if (!direct && r.proxyUrl) {
-        const proxyParam = r.proxyUrl.split("/?proxy=")[1];
-        if (proxyParam) {
-          try { direct = decodeURIComponent(proxyParam); } catch { direct = proxyParam; }
-        }
-      }
-
-      if (isDub) {
-        // Insert /Dub/ before the filename
-        const i = direct.lastIndexOf("/");
-        if (i !== -1 && !direct.includes("/Dub/")) {
-          direct = direct.slice(0, i) + "/Dub" + direct.slice(i);
-        }
-        proxyUrls.push(`${DA}/?proxy=${direct}`);
-      } else {
-        proxyUrls.push(r.proxyUrl ?? `${DA}/?proxy=${encodeURIComponent(direct)}`);
-      }
+  } else {
+    // Dub strategy 1: try slug-dublado (separate dub page on animesdrive)
+    const dubSlug = slug.endsWith("-dublado") ? slug : `${slug}-dublado`;
+    const dubResults = await fetchWorkerResults(dubSlug, ep);
+    for (const r of dubResults.filter((r) => r.type === "mp4" && (r.proxyUrl || r.url))) {
+      const direct = extractDirect(r);
+      proxyUrls.push(r.proxyUrl ?? `${DA}/?proxy=${encodeURIComponent(direct)}`);
       directUrls.push(direct);
     }
 
-    if (proxyUrls.length > 0) {
-      return { found: true, proxyUrls, directUrls };
+    // Dub strategy 2: same sub slug but modify URL to /Dub/ path
+    if (proxyUrls.length === 0) {
+      const subResults = await fetchWorkerResults(slug, ep);
+      for (const r of subResults.filter((r) => r.type === "mp4" && (r.proxyUrl || r.url))) {
+        const direct = toDubUrl(extractDirect(r));
+        if (direct) {
+          proxyUrls.push(`${DA}/?proxy=${direct}`);
+          directUrls.push(direct);
+        }
+      }
     }
-  } catch {
-    // ignore
   }
-  return { found: false, proxyUrls: [], directUrls: [] };
+
+  return proxyUrls.length > 0
+    ? { found: true, proxyUrls, directUrls }
+    : { found: false, proxyUrls: [], directUrls: [] };
 }
 
 export default function SlugFinderPage() {
