@@ -313,27 +313,19 @@ export default function DriveAPlayerPage() {
                     Slug direto do AniTube (override)
                   </Label>
                   <Input
-                    placeholder="Ex: 939915b  ou  https://www.anitube.zip/939915b/"
+                    placeholder="Ex: https://www.anitube.zip/video/1037840/  ou  939915b"
                     value={atDirectSlug}
-                    onChange={(e) => {
-                      const val = e.target.value.trim();
-                      // Accept full URL or bare slug
-                      try {
-                        const url = new URL(val.startsWith("http") ? val : "https://x/" + val);
-                        const seg = url.pathname.replace(/\/$/, "").split("/").filter(Boolean).pop();
-                        setAtDirectSlug(seg ?? val);
-                      } catch {
-                        setAtDirectSlug(val);
-                      }
-                    }}
+                    onChange={(e) => setAtDirectSlug(e.target.value.trim())}
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Se preenchido, ignora a busca automática no AniTube e usa este slug diretamente.
-                    Cole a URL completa ou só o slug (ex: <code className="font-mono">939915b</code>).
+                    Cole a URL completa do episódio no AniTube ou só o slug/ID.
+                    Ao usar, a busca automática por título é ignorada para esta fonte.
                   </p>
                   {atDirectSlug && (
-                    <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-mono">
-                      → https://www.anitube.zip/{atDirectSlug}/
+                    <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-mono break-all">
+                      → {atDirectSlug.startsWith("http")
+                          ? atDirectSlug.replace(/\/$/, "") + "/"
+                          : `https://www.anitube.zip/${atDirectSlug.replace(/^\/|\/$/g, "")}/`}
                     </p>
                   )}
                 </div>

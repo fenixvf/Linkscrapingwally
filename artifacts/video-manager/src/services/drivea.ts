@@ -185,12 +185,19 @@ const resolveAnimeQ = async (
 
 // ── AniTube Direct (slug direto da página do episódio) ────────────────────────
 
-export const resolveAniTubeDirect = async (slug: string): Promise<RawResult[] | null> => {
-  const pageUrl = `${AT_BASE}/${slug}/`;
-  console.log('[AniTube Direct] Testando slug:', slug, '→', pageUrl);
+export const resolveAniTubeDirect = async (slugOrUrl: string): Promise<RawResult[] | null> => {
+  // Accept a full anitube.zip URL (e.g. https://www.anitube.zip/video/1037840/)
+  // or a bare slug/path (e.g. video/1037840 or 939915b)
+  let pageUrl: string;
+  if (slugOrUrl.startsWith('http')) {
+    pageUrl = slugOrUrl.replace(/\/$/, '') + '/';
+  } else {
+    pageUrl = `${AT_BASE}/${slugOrUrl.replace(/^\/|\/$/g, '')}/`;
+  }
+  console.log('[AniTube Direct] Testando:', slugOrUrl, '→', pageUrl);
   const found = await probeWorker(AT, pageUrl, 15000);
   if (found) {
-    console.log('[AniTube Direct] ✅ Encontrado:', slug);
+    console.log('[AniTube Direct] ✅ Encontrado:', pageUrl);
     return found.results;
   }
   return null;
