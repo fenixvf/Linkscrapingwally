@@ -415,18 +415,33 @@ export default function DriveAPlayerPage() {
             {result.type === "mp4" && currentSource && (
               <>
                 {videoError ? (
-                  <div className="rounded-lg overflow-hidden bg-black aspect-video flex flex-col items-center justify-center gap-4 text-muted-foreground">
+                  <div className="rounded-lg overflow-hidden bg-black aspect-video flex flex-col items-center justify-center gap-3 text-muted-foreground px-6">
                     <VideoOff className="w-12 h-12 opacity-40" />
                     <p className="text-sm text-center max-w-xs">
-                      O player integrado não conseguiu reproduzir este vídeo.<br />
-                      Tente abrir diretamente no navegador.
+                      O player integrado não conseguiu reproduzir este vídeo.
                     </p>
-                    <a href={currentSource.url} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="sm">
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Abrir em nova aba
-                      </Button>
-                    </a>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {currentSource.directUrl && currentSource.directUrl !== currentSource.url && (
+                        <a href={currentSource.directUrl} target="_blank" rel="noopener noreferrer">
+                          <Button variant="outline" size="sm">
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Abrir URL direta
+                          </Button>
+                        </a>
+                      )}
+                      <a href={currentSource.url} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="sm">
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          {currentSource.directUrl && currentSource.directUrl !== currentSource.url
+                            ? "Abrir via proxy"
+                            : "Abrir em nova aba"}
+                        </Button>
+                      </a>
+                    </div>
+                    <p className="text-[11px] text-center opacity-60 max-w-xs">
+                      URL direta funciona se o CDN permitir acesso sem Referer.
+                      Proxy funciona se o worker suportar streaming.
+                    </p>
                   </div>
                 ) : (
                   <div className="rounded-lg overflow-hidden bg-black aspect-video">

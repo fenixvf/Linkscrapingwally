@@ -254,15 +254,16 @@ export const pickBestDriveASource = async (
   originLabel?: string,
 ): Promise<DriveAResult> => {
   const raw = results as RawResult[];
+  console.log(`[DriveA] pickBestDriveASource raw (${originLabel}):`, JSON.stringify(raw));
   const workerProxy = originLabel === 'AnimeQ' ? AQ : originLabel === 'AniTube' ? AT : DA;
 
-  const mp4s = raw.filter(r => r.type === 'mp4' && r.proxyUrl);
+  const mp4s = raw.filter(r => r.type === 'mp4' && (r.proxyUrl || r.url));
   if (mp4s.length > 0) {
     return {
       type: 'mp4',
       sources: mp4s.map(r => ({
         label: r.label ?? 'MP4',
-        url: r.proxyUrl!,
+        url: r.proxyUrl ?? r.url!,
         directUrl: r.url,
         origin: originLabel,
       })),
