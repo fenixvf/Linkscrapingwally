@@ -90,12 +90,12 @@ interface RawResult {
 const probeWorker = async (
   workerBase: string,
   pageUrl: string,
-  signal?: AbortSignal,
+  timeoutMs = 20000,
 ): Promise<{ results: RawResult[] } | null> => {
   const workerUrl = `${workerBase}/?url=${encodeURIComponent(pageUrl)}`;
   try {
     const res = await fetch(workerUrl, {
-      signal: signal ?? AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) return null;
     const data = await res.json() as { success: boolean; results?: RawResult[] };
@@ -158,7 +158,7 @@ const probeAnimeQ = async (
   ep: number,
   isMovie = false,
 ): Promise<{ results: RawResult[] } | null> => {
-  return probeWorker(AQ, buildAQEpisodeUrl(slug, ep, isMovie));
+  return probeWorker(AQ, buildAQEpisodeUrl(slug, ep, isMovie), 8000);
 };
 
 const resolveAnimeQ = async (
@@ -168,7 +168,8 @@ const resolveAnimeQ = async (
 ): Promise<RawResult[] | null> => {
   const movieTypes = ['Movie', 'OVA', 'Special', 'TV Special', 'Music'];
   const isMovie = movieTypes.includes(anime.type ?? '');
-  const candidates = buildDriveACandidates(anime, dub);
+  // Limit to top 3 candidates to avoid long sequential waits
+  const candidates = buildDriveACandidates(anime, dub).slice(0, 3);
 
   console.log('[AnimeQ] Testando slugs:', candidates);
 
@@ -202,7 +203,7 @@ const probeAniTube = async (
   ep: number,
   isMovie = false,
 ): Promise<{ results: RawResult[] } | null> => {
-  return probeWorker(AT, buildATEpisodeUrl(slug, ep, isMovie));
+  return probeWorker(AT, buildATEpisodeUrl(slug, ep, isMovie), 8000);
 };
 
 const resolveAniTube = async (
@@ -220,31 +221,27 @@ const resolveAniTube = async (
     ...(anime.titles ?? []).map(t => t.title),
   ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i) as string[];
 
-  const candidates = new Set<string>();
+  const allCandidates: string[] = [];
   for (const t of titles) {
     const stripped = stripSeasonAD(t);
     for (const v of [t, stripped]) {
       const s = slugifyAT(v);
-      if (s && s.length > 1) candidates.add(s);
+      if (s && s.length > 1 && !allCandidates.includes(s)) allCandidates.push(s);
     }
   }
 
-  if (dub) {
-    const dubCandidates = [...candidates].map(c => c + '-dublado');
-    for (const c of [...dubCandidates, ...candidates]) {
-      const found = await probeAniTube(c, ep, isMovie);
-      if (found) {
-        console.log('[AniTube] ✅ Encontrado:', c);
-        return found.results;
-      }
-    }
-  } else {
-    for (const c of candidates) {
-      const found = await probeAniTube(c, ep, isMovie);
-      if (found) {
-        console.log('[AniTube] ✅ Encontrado:', c);
-        return found.results;
-      }
+  // Limit to top 3 candidates to avoid long sequential waits
+  const candidates = dub
+    ? [...allCandidates.slice(0, 3).map(c => c + '-dublado'), ...allCandidates.slice(0, 3)]
+    : allCandidates.slice(0, 3);
+
+  console.log('[AniTube] Testando slugs:', candidates);
+
+  for (const c of candidates) {
+    const found = await probeAniTube(c, ep, isMovie);
+    if (found) {
+      console.log('[AniTube] ✅ Encontrado:', c);
+      return found.results;
     }
   }
   return null;
@@ -311,6 +308,12 @@ export const pickBestDriveASource = async (
 
 // ── Main loader (tries all sources) ───────────────────────────────────────────
 
+const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> =>
+  Promise.race([
+    promise,
+    new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms)),
+  ]);
+
 export const loadDriveA = async (
   anime: AnimeInfo,
   ep: number,
@@ -320,12 +323,20 @@ export const loadDriveA = async (
   | { success: false; error: string }
 > => {
   try {
-    // Run all three sources in parallel
-    const [adResult, aqResults, atResults] = await Promise.allSettled([
-      resolveDriveA(anime, ep, isDub),
-      resolveAnimeQ(anime, ep, isDub),
-      resolveAniTube(anime, ep, isDub),
-    ]);
+    // Run all three sources in parallel, with a 25s global ceiling
+    const [adResult, aqResults, atResults] = await withTimeout(
+      Promise.allSettled([
+        resolveDriveA(anime, ep, isDub),
+        resolveAnimeQ(anime, ep, isDub),
+        resolveAniTube(anime, ep, isDub),
+      ]),
+      25000,
+      [
+        { status: 'rejected' as const, reason: new Error('Timeout global') },
+        { status: 'rejected' as const, reason: new Error('Timeout global') },
+        { status: 'rejected' as const, reason: new Error('Timeout global') },
+      ],
+    );
 
     const allSources: DriveASource[] = [];
     let dominantType: 'mp4' | 'iframe' = 'iframe';
