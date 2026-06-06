@@ -275,6 +275,30 @@ export default function DriveAPlayerPage() {
             </Label>
           </div>
 
+          {/* AniTube direct URL */}
+          <div className="space-y-1.5 rounded-md border border-cyan-500/25 bg-cyan-500/5 p-3">
+            <Label className="text-xs flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 font-medium">
+              <Globe className="w-3.5 h-3.5" />
+              URL direta do AniTube <span className="text-muted-foreground font-normal">(opcional)</span>
+            </Label>
+            <Input
+              placeholder="Ex: https://www.anitube.zip/video/1037840/"
+              value={atDirectSlug}
+              onChange={(e) => setAtDirectSlug(e.target.value.trim())}
+            />
+            {atDirectSlug ? (
+              <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-mono break-all">
+                → {atDirectSlug.startsWith("http")
+                    ? atDirectSlug.replace(/\/$/, "") + "/"
+                    : `https://www.anitube.zip/${atDirectSlug.replace(/^\/|\/$/g, "")}/`}
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                Cole a URL do episódio no AniTube para usar diretamente, sem busca por título.
+              </p>
+            )}
+          </div>
+
           {/* Advanced titles */}
           <div>
             <button
@@ -286,48 +310,22 @@ export default function DriveAPlayerPage() {
               Títulos alternativos (opcional)
             </button>
             {showAdvanced && (
-              <div className="space-y-3 mt-3">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Título em inglês</Label>
-                    <Input
-                      placeholder="Ex: Re:Zero - Starting Life in Another World"
-                      value={titleEn}
-                      onChange={(e) => setTitleEn(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Título em português</Label>
-                    <Input
-                      placeholder="Ex: Re:Zero"
-                      value={titlePt}
-                      onChange={(e) => setTitlePt(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* AniTube direct slug override */}
-                <div className="space-y-1.5 border border-cyan-500/20 bg-cyan-500/5 rounded-md p-3">
-                  <Label className="text-xs flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400">
-                    <Globe className="w-3 h-3" />
-                    Slug direto do AniTube (override)
-                  </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Título em inglês</Label>
                   <Input
-                    placeholder="Ex: https://www.anitube.zip/video/1037840/  ou  939915b"
-                    value={atDirectSlug}
-                    onChange={(e) => setAtDirectSlug(e.target.value.trim())}
+                    placeholder="Ex: Re:Zero - Starting Life in Another World"
+                    value={titleEn}
+                    onChange={(e) => setTitleEn(e.target.value)}
                   />
-                  <p className="text-[11px] text-muted-foreground">
-                    Cole a URL completa do episódio no AniTube ou só o slug/ID.
-                    Ao usar, a busca automática por título é ignorada para esta fonte.
-                  </p>
-                  {atDirectSlug && (
-                    <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-mono break-all">
-                      → {atDirectSlug.startsWith("http")
-                          ? atDirectSlug.replace(/\/$/, "") + "/"
-                          : `https://www.anitube.zip/${atDirectSlug.replace(/^\/|\/$/g, "")}/`}
-                    </p>
-                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Título em português</Label>
+                  <Input
+                    placeholder="Ex: Re:Zero"
+                    value={titlePt}
+                    onChange={(e) => setTitlePt(e.target.value)}
+                  />
                 </div>
               </div>
             )}
