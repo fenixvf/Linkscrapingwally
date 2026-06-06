@@ -1,0 +1,47 @@
+2026-06-06T15:42:23.446261377Z ==> Downloading cache...
+2026-06-06T15:42:23.483785248Z ==> Cloning from https://github.com/fenixvf/Linkscrapingwally
+2026-06-06T15:42:24.066678605Z ==> Checking out commit 24b266c9076bf0504f1bf72c1278ec3da95afd27 in branch main
+2026-06-06T15:42:29.043355058Z ==> Downloaded 90MB in 3s. Extraction took 2s.
+2026-06-06T15:42:38.461986589Z ==> Using Node.js version 24.14.1 (default)
+2026-06-06T15:42:38.46199998Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2026-06-06T15:42:38.509595749Z ==> Running build command 'pnpm install --prod=false && pnpm --filter @workspace/db run push && pnpm --filter @workspace/api-server run build'...
+2026-06-06T15:42:43.2965683Z 
+2026-06-06T15:42:43.296605403Z > @workspace/db@0.0.0 push /opt/render/project/src/lib/db
+2026-06-06T15:42:43.296615073Z > drizzle-kit push --config ./drizzle.config.ts
+2026-06-06T15:42:43.296618423Z 
+2026-06-06T15:42:43.483877737Z Reading config file '/opt/render/project/src/lib/db/drizzle.config.ts'
+2026-06-06T15:42:43.987557651Z Using 'pg' driver for database querying
+2026-06-06T15:42:44.349271987Z [⣷] Pulling schema from database...
+2026-06-06T15:42:44.439679442Z [⣯] Pulling schema from database...
+2026-06-06T15:42:44.568276413Z [⣟] Pulling schema from database...
+2026-06-06T15:42:44.697154603Z [⡿] Pulling schema from database...
+2026-06-06T15:42:44.82464106Z [⢿] Pulling schema from database...
+2026-06-06T15:42:44.953017316Z [⣻] Pulling schema from database...
+2026-06-06T15:42:45.080516244Z [⣽] Pulling schema from database...
+2026-06-06T15:42:45.208786903Z [⣷] Pulling schema from database...
+2026-06-06T15:42:45.269667663Z [✓] Pulling schema from database...
+2026-06-06T15:42:45.275850609Z [i] No changes detected
+2026-06-06T15:42:45.684948848Z 
+2026-06-06T15:42:45.6849716Z > @workspace/api-server@0.0.0 build /opt/render/project/src/artifacts/api-server
+2026-06-06T15:42:45.684976441Z > node ./build.mjs
+2026-06-06T15:42:45.684980301Z 
+2026-06-06T15:42:46.156185754Z 
+2026-06-06T15:42:46.156210355Z   dist/index.mjs                       2.2mb ⚠️
+2026-06-06T15:42:46.156215866Z   dist/pino-worker.mjs               153.4kb
+2026-06-06T15:42:46.156219956Z   dist/pino-file.mjs                 142.1kb
+2026-06-06T15:42:46.156223886Z   dist/pino-pretty.mjs               114.6kb
+2026-06-06T15:42:46.156227696Z   dist/thread-stream-worker.mjs        7.3kb
+2026-06-06T15:42:46.156231567Z   dist/index.mjs.map                   3.8mb
+2026-06-06T15:42:46.156235397Z   dist/pino-worker.mjs.map           256.9kb
+2026-06-06T15:42:46.156239357Z   dist/pino-file.mjs.map             229.0kb
+2026-06-06T15:42:46.156243248Z   dist/pino-pretty.mjs.map           204.0kb
+2026-06-06T15:42:46.156247068Z   dist/thread-stream-worker.mjs.map   12.0kb
+2026-06-06T15:42:46.156250778Z 
+2026-06-06T15:42:46.156255278Z ⚡ Done in 412ms
+2026-06-06T15:42:48.379844444Z ==> Uploading build...
+2026-06-06T15:42:56.562879543Z ==> Uploaded in 3.9s. Compression took 4.2s
+2026-06-06T15:42:56.583456616Z ==> Build successful 🎉
+2026-06-06T15:42:59.181439014Z ==> Deploying...
+2026-06-06T15:42:59.265222973Z ==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+2026-06-06T15:43:31.434659447Z ==> Cause of failure could not be determined
+2026-06-06T15:43:31.436932107Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
