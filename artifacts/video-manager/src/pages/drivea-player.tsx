@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import Hls from "hls.js";
 import {
   loadDriveA,
   buildDriveACandidates,
@@ -41,7 +42,6 @@ import {
   Loader2,
   ExternalLink,
   Film,
-  Globe,
   Tv,
   ChevronDown,
   ChevronUp,
@@ -59,7 +59,7 @@ const ANIME_TYPES = ["TV", "Movie", "OVA", "Special", "TV Special", "Music"];
 type LoadState = "idle" | "loading" | "success" | "error";
 
 interface PlayerResult {
-  type: "mp4" | "iframe";
+  type: "mp4" | "iframe" | "hls";
   sources: DriveASource[];
   embedUrl?: string;
 }
@@ -75,7 +75,6 @@ export default function DriveAPlayerPage() {
   const [episode, setEpisode] = useState("1");
   const [animeType, setAnimeType] = useState("TV");
   const [isDub, setIsDub] = useState(false);
-  const [atDirectSlug, setAtDirectSlug] = useState("");
   const [selectedSource, setSelectedSource] = useState(0);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showCandidates, setShowCandidates] = useState(false);
@@ -87,6 +86,7 @@ export default function DriveAPlayerPage() {
   const [errorMsg, setErrorMsg] = useState("");
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
 
   // ── Save as Link dialog ────────────────────────────────────────────────────
   const [isSaveOpen, setIsSaveOpen] = useState(false);
@@ -113,9 +113,36 @@ export default function DriveAPlayerPage() {
   const candidates = title.trim() ? buildDriveACandidates(animeInfo, isDub) : [];
   const currentSource = result?.sources[selectedSource];
 
+  // ── HLS.js lifecycle ────────────────────────────────────────────────────────
+  useEffect(() => {
+    const src = result?.type === "hls" ? result.sources[selectedSource]?.url : null;
+    const video = videoRef.current;
+    if (!src || !video) return;
+
+    hlsRef.current?.destroy();
+    hlsRef.current = null;
+    setVideoError(false);
+
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hlsRef.current = hls;
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(() => {}); });
+      hls.on(Hls.Events.ERROR, (_evt, data) => { if (data.fatal) setVideoError(true); });
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      video.src = src;
+      video.play().catch(() => {});
+    } else {
+      setVideoError(true);
+    }
+
+    return () => { hlsRef.current?.destroy(); hlsRef.current = null; };
+  }, [result, selectedSource]);
+
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleLoad = async () => {
-    if (!title.trim() && !atDirectSlug.trim()) { toast.error("Informe o título do anime ou a URL direta do AniTube."); return; }
+    if (!title.trim()) { toast.error("Informe o título do anime."); return; }
     const ep = parseInt(episode, 10);
     if (isNaN(ep) || ep < 1) { toast.error("Número de episódio inválido."); return; }
 
@@ -125,9 +152,7 @@ export default function DriveAPlayerPage() {
     setSelectedSource(0);
     setVideoError(false);
 
-    const res = await loadDriveA(animeInfo, ep, isDub, {
-      atDirectSlug: atDirectSlug.trim() || undefined,
-    });
+    const res = await loadDriveA(animeInfo, ep, isDub);
     if (!res.success) {
       setLoadState("error");
       setErrorMsg(res.error);
@@ -275,35 +300,6 @@ export default function DriveAPlayerPage() {
             </Label>
           </div>
 
-          {/* AniTube direct URL */}
-          <div className="space-y-1.5 rounded-md border border-cyan-500/25 bg-cyan-500/5 p-3">
-            <Label className="text-xs flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 font-medium">
-              <Globe className="w-3.5 h-3.5" />
-              URL direta do AniTube <span className="text-muted-foreground font-normal">(opcional)</span>
-            </Label>
-            <Input
-              placeholder="Ex: https://www.anitube.zip/video/1037840/"
-              value={atDirectSlug}
-              onChange={(e) => setAtDirectSlug(e.target.value)}
-              onPaste={(e) => {
-                e.preventDefault();
-                const pasted = e.clipboardData.getData("text");
-                setAtDirectSlug(pasted.trim());
-              }}
-            />
-            {atDirectSlug ? (
-              <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-mono break-all">
-                → {atDirectSlug.startsWith("http")
-                    ? atDirectSlug.replace(/\/$/, "") + "/"
-                    : `https://www.anitube.zip/${atDirectSlug.replace(/^\/|\/$/g, "")}/`}
-              </p>
-            ) : (
-              <p className="text-[11px] text-muted-foreground">
-                Cole a URL do episódio no AniTube para usar diretamente, sem busca por título.
-              </p>
-            )}
-          </div>
-
           {/* Advanced titles */}
           <div>
             <button
@@ -359,7 +355,7 @@ export default function DriveAPlayerPage() {
 
           <Button
             onClick={handleLoad}
-            disabled={loadState === "loading" || (!title.trim() && !atDirectSlug.trim())}
+            disabled={loadState === "loading" || !title.trim()}
             className="w-full md:w-auto"
           >
             {loadState === "loading" ? (
@@ -488,6 +484,34 @@ export default function DriveAPlayerPage() {
                     >
                       <source src={currentSource.url} type="video/mp4" />
                     </video>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* HLS player */}
+            {result.type === "hls" && currentSource && (
+              <>
+                {videoError ? (
+                  <div className="rounded-lg overflow-hidden bg-black aspect-video flex flex-col items-center justify-center gap-3 text-muted-foreground px-6">
+                    <VideoOff className="w-12 h-12 opacity-40" />
+                    <p className="text-sm text-center max-w-xs">
+                      O player HLS não conseguiu reproduzir este vídeo.
+                    </p>
+                    <a href={currentSource.url} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm">
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Abrir stream em nova aba
+                      </Button>
+                    </a>
+                  </div>
+                ) : (
+                  <div className="rounded-lg overflow-hidden bg-black aspect-video">
+                    <video
+                      ref={videoRef}
+                      controls
+                      className="w-full h-full"
+                    />
                   </div>
                 )}
               </>

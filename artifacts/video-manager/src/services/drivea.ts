@@ -22,7 +22,7 @@ export interface DriveASource {
 }
 
 export interface DriveAResult {
-  type: 'mp4' | 'iframe';
+  type: 'mp4' | 'iframe' | 'hls';
   sources: DriveASource[];
   embedUrl?: string;
 }
@@ -183,26 +183,6 @@ const resolveAnimeQ = async (
   return null;
 };
 
-// ── AniTube Direct (slug direto da página do episódio) ────────────────────────
-
-export const resolveAniTubeDirect = async (slugOrUrl: string): Promise<RawResult[] | null> => {
-  // Accept a full anitube.zip URL (e.g. https://www.anitube.zip/video/1037840/)
-  // or a bare slug/path (e.g. video/1037840 or 939915b)
-  let pageUrl: string;
-  if (slugOrUrl.startsWith('http')) {
-    pageUrl = slugOrUrl.replace(/\/$/, '') + '/';
-  } else {
-    pageUrl = `${AT_BASE}/${slugOrUrl.replace(/^\/|\/$/g, '')}/`;
-  }
-  console.log('[AniTube Direct] Testando:', slugOrUrl, '→', pageUrl);
-  const found = await probeWorker(AT, pageUrl, 15000);
-  if (found) {
-    console.log('[AniTube Direct] ✅ Encontrado:', pageUrl);
-    return found.results;
-  }
-  return null;
-};
-
 // ── AniTube ────────────────────────────────────────────────────────────────────
 
 const slugifyAT = (s: string): string =>
@@ -218,19 +198,27 @@ const buildATEpisodeUrl = (slug: string, ep: number, isMovie = false): string =>
     ? `${AT_BASE}/${slug}/`
     : `${AT_BASE}/${slug}-${epStr(ep)}/`;
 
-const probeAniTube = async (
-  slug: string,
-  ep: number,
-  isMovie = false,
-): Promise<{ results: RawResult[] } | null> => {
-  return probeWorker(AT, buildATEpisodeUrl(slug, ep, isMovie), 8000);
+// The AT worker returns a raw HLS m3u8 playlist (not JSON).
+// The worker URL itself is the playable HLS stream URL.
+const probeAniTubeHLS = async (
+  pageUrl: string,
+  timeoutMs = 8000,
+): Promise<string | null> => {
+  const workerUrl = `${AT}/?url=${encodeURIComponent(pageUrl)}`;
+  try {
+    const res = await fetch(workerUrl, { signal: AbortSignal.timeout(timeoutMs) });
+    if (!res.ok) return null;
+    const text = await res.text();
+    if (text.trimStart().startsWith('#EXTM3U')) return workerUrl;
+  } catch { /* ignore */ }
+  return null;
 };
 
 const resolveAniTube = async (
   anime: AnimeInfo,
   ep: number,
   dub = false,
-): Promise<RawResult[] | null> => {
+): Promise<string | null> => {
   const movieTypes = ['Movie', 'OVA', 'Special', 'TV Special', 'Music'];
   const isMovie = movieTypes.includes(anime.type ?? '');
 
@@ -258,10 +246,10 @@ const resolveAniTube = async (
   console.log('[AniTube] Testando slugs:', candidates);
 
   for (const c of candidates) {
-    const found = await probeAniTube(c, ep, isMovie);
-    if (found) {
-      console.log('[AniTube] ✅ Encontrado:', c);
-      return found.results;
+    const hlsUrl = await probeAniTubeHLS(buildATEpisodeUrl(c, ep, isMovie));
+    if (hlsUrl) {
+      console.log('[AniTube] ✅ Encontrado (HLS):', c);
+      return hlsUrl;
     }
   }
   return null;
@@ -335,48 +323,21 @@ const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
     new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms)),
   ]);
 
-export interface LoadDriveAOptions {
-  atDirectSlug?: string;
-}
-
 export const loadDriveA = async (
   anime: AnimeInfo,
   ep: number,
   isDub: boolean,
-  options: LoadDriveAOptions = {},
 ): Promise<
-  | { success: true; sources: DriveASource[]; type: 'mp4' | 'iframe'; embedUrl?: string }
+  | { success: true; sources: DriveASource[]; type: 'mp4' | 'iframe' | 'hls'; embedUrl?: string }
   | { success: false; error: string }
 > => {
   try {
-    const { atDirectSlug } = options;
-    const hasTitle = anime.title.trim().length > 0;
-
-    // When only a direct AniTube URL is given (no title), skip AnimesDrive/AnimeQ entirely.
-    // They require a title to build candidates and will always fail with an empty string.
-    if (atDirectSlug && !hasTitle) {
-      const results = await resolveAniTubeDirect(atDirectSlug);
-      if (!results || results.length === 0) {
-        return {
-          success: false,
-          error: `AniTube: nenhuma fonte encontrada para "${atDirectSlug}". Verifique se a URL do episódio está correta.`,
-        };
-      }
-      const picked = await pickBestDriveASource(results, 'AniTube');
-      return { success: true, sources: picked.sources, type: picked.type, embedUrl: picked.embedUrl };
-    }
-
-    // Build AniTube promise: prefer direct slug if provided, otherwise auto-discover
-    const aniTubePromise = atDirectSlug
-      ? resolveAniTubeDirect(atDirectSlug)
-      : resolveAniTube(anime, ep, isDub);
-
     // Run all three sources in parallel, with a 25s global ceiling
-    const [adResult, aqResults, atResults] = await withTimeout(
+    const [adResult, aqResults, atResult] = await withTimeout(
       Promise.allSettled([
         resolveDriveA(anime, ep, isDub),
         resolveAnimeQ(anime, ep, isDub),
-        aniTubePromise,
+        resolveAniTube(anime, ep, isDub),
       ]),
       25000,
       [
@@ -387,7 +348,7 @@ export const loadDriveA = async (
     );
 
     const allSources: DriveASource[] = [];
-    let dominantType: 'mp4' | 'iframe' = 'iframe';
+    let dominantType: 'mp4' | 'iframe' | 'hls' = 'iframe';
     let embedUrl: string | undefined;
 
     const processResult = async (
@@ -415,22 +376,21 @@ export const loadDriveA = async (
     if (aqResults.status === 'fulfilled' && aqResults.value) {
       await processResult(aqResults.value, 'AnimeQ');
     }
-    if (atResults.status === 'fulfilled' && atResults.value) {
-      await processResult(atResults.value, 'AniTube');
+    // AniTube returns an HLS stream URL directly — handle separately
+    if (atResult.status === 'fulfilled' && atResult.value) {
+      const hlsUrl = atResult.value;
+      allSources.push({ label: 'AniTube HLS', url: hlsUrl, origin: 'AniTube' });
+      if (dominantType !== 'mp4') dominantType = 'hls';
     }
 
     if (allSources.length === 0) {
-      const errors = [adResult, aqResults, atResults]
+      const errors = [adResult, aqResults, atResult]
         .filter(r => r.status === 'rejected')
         .map(r => (r as PromiseRejectedResult).reason?.message ?? 'erro desconhecido')
         .join('; ');
-      // If AniTube direct was used but returned null (status fulfilled, value null)
-      const atNote = atDirectSlug && atResults.status === 'fulfilled' && !atResults.value
-        ? `AniTube: nenhuma fonte para "${atDirectSlug}". `
-        : '';
       return {
         success: false,
-        error: `${atNote}Nenhuma fonte encontrada. ${errors}`.trim(),
+        error: `Nenhuma fonte encontrada. ${errors}`.trim(),
       };
     }
 
