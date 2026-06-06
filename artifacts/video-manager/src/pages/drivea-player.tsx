@@ -284,7 +284,12 @@ export default function DriveAPlayerPage() {
             <Input
               placeholder="Ex: https://www.anitube.zip/video/1037840/"
               value={atDirectSlug}
-              onChange={(e) => setAtDirectSlug(e.target.value.trim())}
+              onChange={(e) => setAtDirectSlug(e.target.value)}
+              onPaste={(e) => {
+                e.preventDefault();
+                const pasted = e.clipboardData.getData("text");
+                setAtDirectSlug(pasted.trim());
+              }}
             />
             {atDirectSlug ? (
               <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-mono break-all">
