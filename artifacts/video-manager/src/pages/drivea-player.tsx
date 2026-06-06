@@ -115,7 +115,7 @@ export default function DriveAPlayerPage() {
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleLoad = async () => {
-    if (!title.trim()) { toast.error("Informe o título do anime."); return; }
+    if (!title.trim() && !atDirectSlug.trim()) { toast.error("Informe o título do anime ou a URL direta do AniTube."); return; }
     const ep = parseInt(episode, 10);
     if (isNaN(ep) || ep < 1) { toast.error("Número de episódio inválido."); return; }
 
@@ -354,7 +354,7 @@ export default function DriveAPlayerPage() {
 
           <Button
             onClick={handleLoad}
-            disabled={loadState === "loading" || !title.trim()}
+            disabled={loadState === "loading" || (!title.trim() && !atDirectSlug.trim())}
             className="w-full md:w-auto"
           >
             {loadState === "loading" ? (
