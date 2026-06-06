@@ -392,8 +392,20 @@ export default function DriveAPlayerPage() {
                         videoRef.current.play().catch(() => {});
                       }
                     }}
+                    className="flex items-center gap-1.5"
                   >
                     {s.label}
+                    {s.origin && (
+                      <span className={`text-[10px] px-1 py-0.5 rounded font-mono leading-none ${
+                        s.origin === "AnimeQ"
+                          ? "bg-violet-500/20 text-violet-400"
+                          : s.origin === "AniTube"
+                          ? "bg-cyan-500/20 text-cyan-400"
+                          : "bg-amber-500/20 text-amber-400"
+                      }`}>
+                        {s.origin === "AnimesDrive" ? "AD" : s.origin === "AnimeQ" ? "AQ" : "AT"}
+                      </span>
+                    )}
                   </Button>
                 ))}
               </div>
@@ -470,6 +482,17 @@ export default function DriveAPlayerPage() {
                   }`}
                 >
                   <span className="font-medium shrink-0 min-w-[80px]">{s.label}</span>
+                  {s.origin && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 ${
+                      s.origin === "AnimeQ"
+                        ? "bg-violet-500/15 text-violet-400 border border-violet-500/20"
+                        : s.origin === "AniTube"
+                        ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/20"
+                        : "bg-amber-500/15 text-amber-400 border border-amber-500/20"
+                    }`}>
+                      {s.origin}
+                    </span>
+                  )}
                   <span className="font-mono text-xs text-muted-foreground truncate flex-1">{s.url}</span>
                   <div className="flex items-center gap-1 shrink-0">
                     <Button

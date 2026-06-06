@@ -1,5 +1,10 @@
-const DA = 'https://drivea.masterotaku487.workers.dev';
-const AD_BASE = 'https://animesdrive.online';
+const DA  = 'https://drivea.masterotaku487.workers.dev';
+const AQ  = 'https://aq.masterotaku487.workers.dev';
+const AT  = 'https://at.masterotaku487.workers.dev';
+
+const AD_BASE  = 'https://animesdrive.online';
+const AQ_BASE  = 'https://animeq.net';
+const AT_BASE  = 'https://www.anitube.zip';
 
 export interface AnimeInfo {
   title: string;
@@ -13,6 +18,7 @@ export interface DriveASource {
   label: string;
   url: string;
   directUrl?: string;
+  origin?: string;
 }
 
 export interface DriveAResult {
@@ -20,6 +26,8 @@ export interface DriveAResult {
   sources: DriveASource[];
   embedUrl?: string;
 }
+
+// ── URL helpers ────────────────────────────────────────────────────────────────
 
 const toDubUrl = (url: string): string => {
   if (url.includes('/Dub/')) return url;
@@ -65,7 +73,44 @@ export const buildDriveACandidates = (anime: AnimeInfo, dub = false): string[] =
 
 const epStr = (ep: number): string => String(ep).padStart(2, '0');
 
-const buildEpisodeUrl = (slug: string, ep: number, isMovie = false): string =>
+// ── Raw result shape (shared by all workers) ───────────────────────────────────
+
+interface RawResult {
+  type?: string;
+  proxyUrl?: string;
+  url?: string;
+  label?: string;
+  isBlogger?: boolean;
+  resolveUrl?: string;
+  option?: string;
+}
+
+// ── Worker probe helpers ───────────────────────────────────────────────────────
+
+const probeWorker = async (
+  workerBase: string,
+  pageUrl: string,
+  signal?: AbortSignal,
+): Promise<{ results: RawResult[] } | null> => {
+  const workerUrl = `${workerBase}/?url=${encodeURIComponent(pageUrl)}`;
+  try {
+    const res = await fetch(workerUrl, {
+      signal: signal ?? AbortSignal.timeout(20000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { success: boolean; results?: RawResult[] };
+    if (data.success && data.results && data.results.length > 0) {
+      return { results: data.results };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+};
+
+// ── AnimesDrive ────────────────────────────────────────────────────────────────
+
+const buildADEpisodeUrl = (slug: string, ep: number, isMovie = false): string =>
   isMovie
     ? `${AD_BASE}/episodio/${slug}`
     : `${AD_BASE}/episodio/${slug}-episodio-${epStr(ep)}`;
@@ -74,19 +119,9 @@ const probeDriveA = async (
   slug: string,
   ep: number,
   isMovie = false,
-): Promise<{ slug: string; results: unknown[] } | null> => {
-  const epUrl = buildEpisodeUrl(slug, ep, isMovie);
-  const workerUrl = `${DA}/?url=${encodeURIComponent(epUrl)}`;
-  try {
-    const res = await fetch(workerUrl, { signal: AbortSignal.timeout(20000) });
-    if (!res.ok) return null;
-    const data = await res.json() as { success: boolean; results?: unknown[] };
-    if (data.success && data.results && data.results.length > 0) {
-      return { slug, results: data.results };
-    }
-  } catch {
-    // ignore
-  }
+): Promise<{ slug: string; results: RawResult[] } | null> => {
+  const found = await probeWorker(DA, buildADEpisodeUrl(slug, ep, isMovie));
+  if (found) return { slug, results: found.results };
   return null;
 };
 
@@ -94,7 +129,7 @@ export const resolveDriveA = async (
   anime: AnimeInfo,
   ep: number,
   dub = false,
-): Promise<{ slug: string; results: unknown[] }> => {
+): Promise<{ slug: string; results: RawResult[] }> => {
   const movieTypes = ['Movie', 'OVA', 'Special', 'TV Special', 'Music'];
   const isMovie = movieTypes.includes(anime.type ?? '');
   const candidates = buildDriveACandidates(anime, dub);
@@ -111,17 +146,118 @@ export const resolveDriveA = async (
   throw new Error(`Anime "${anime.title}" não encontrado no AnimesDrive`);
 };
 
-interface RawResult {
-  type?: string;
-  proxyUrl?: string;
-  url?: string;
-  label?: string;
-  isBlogger?: boolean;
-  resolveUrl?: string;
-}
+// ── AnimeQ ─────────────────────────────────────────────────────────────────────
 
-export const pickBestDriveASource = async (results: unknown[]): Promise<DriveAResult> => {
+const buildAQEpisodeUrl = (slug: string, ep: number, isMovie = false): string =>
+  isMovie
+    ? `${AQ_BASE}/episodio/${slug}`
+    : `${AQ_BASE}/episodio/${slug}-episodio-${epStr(ep)}`;
+
+const probeAnimeQ = async (
+  slug: string,
+  ep: number,
+  isMovie = false,
+): Promise<{ results: RawResult[] } | null> => {
+  return probeWorker(AQ, buildAQEpisodeUrl(slug, ep, isMovie));
+};
+
+const resolveAnimeQ = async (
+  anime: AnimeInfo,
+  ep: number,
+  dub = false,
+): Promise<RawResult[] | null> => {
+  const movieTypes = ['Movie', 'OVA', 'Special', 'TV Special', 'Music'];
+  const isMovie = movieTypes.includes(anime.type ?? '');
+  const candidates = buildDriveACandidates(anime, dub);
+
+  console.log('[AnimeQ] Testando slugs:', candidates);
+
+  for (const slug of candidates) {
+    const found = await probeAnimeQ(slug, ep, isMovie);
+    if (found) {
+      console.log('[AnimeQ] ✅ Encontrado:', slug);
+      return found.results;
+    }
+  }
+  return null;
+};
+
+// ── AniTube ────────────────────────────────────────────────────────────────────
+
+const slugifyAT = (s: string): string =>
+  s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[:.!?★☆♪•'"]/g, '')
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .trim().replace(/\s+/g, '-').replace(/-+/g, '-')
+    .replace(/-+/g, '-');
+
+const buildATEpisodeUrl = (slug: string, ep: number, isMovie = false): string =>
+  isMovie
+    ? `${AT_BASE}/${slug}/`
+    : `${AT_BASE}/${slug}-${epStr(ep)}/`;
+
+const probeAniTube = async (
+  slug: string,
+  ep: number,
+  isMovie = false,
+): Promise<{ results: RawResult[] } | null> => {
+  return probeWorker(AT, buildATEpisodeUrl(slug, ep, isMovie));
+};
+
+const resolveAniTube = async (
+  anime: AnimeInfo,
+  ep: number,
+  dub = false,
+): Promise<RawResult[] | null> => {
+  const movieTypes = ['Movie', 'OVA', 'Special', 'TV Special', 'Music'];
+  const isMovie = movieTypes.includes(anime.type ?? '');
+
+  const titles = [
+    anime.title,
+    anime.title_english,
+    anime.title_portuguese,
+    ...(anime.titles ?? []).map(t => t.title),
+  ].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i) as string[];
+
+  const candidates = new Set<string>();
+  for (const t of titles) {
+    const stripped = stripSeasonAD(t);
+    for (const v of [t, stripped]) {
+      const s = slugifyAT(v);
+      if (s && s.length > 1) candidates.add(s);
+    }
+  }
+
+  if (dub) {
+    const dubCandidates = [...candidates].map(c => c + '-dublado');
+    for (const c of [...dubCandidates, ...candidates]) {
+      const found = await probeAniTube(c, ep, isMovie);
+      if (found) {
+        console.log('[AniTube] ✅ Encontrado:', c);
+        return found.results;
+      }
+    }
+  } else {
+    for (const c of candidates) {
+      const found = await probeAniTube(c, ep, isMovie);
+      if (found) {
+        console.log('[AniTube] ✅ Encontrado:', c);
+        return found.results;
+      }
+    }
+  }
+  return null;
+};
+
+// ── Source picker (shared by all workers) ─────────────────────────────────────
+
+export const pickBestDriveASource = async (
+  results: unknown[],
+  originLabel?: string,
+): Promise<DriveAResult> => {
   const raw = results as RawResult[];
+  const workerProxy = originLabel === 'AnimeQ' ? AQ : originLabel === 'AniTube' ? AT : DA;
 
   const mp4s = raw.filter(r => r.type === 'mp4' && r.proxyUrl);
   if (mp4s.length > 0) {
@@ -131,6 +267,7 @@ export const pickBestDriveASource = async (results: unknown[]): Promise<DriveARe
         label: r.label ?? 'MP4',
         url: r.proxyUrl!,
         directUrl: r.url,
+        origin: originLabel,
       })),
     };
   }
@@ -145,8 +282,9 @@ export const pickBestDriveASource = async (results: unknown[]): Promise<DriveARe
           type: 'mp4',
           sources: data.sources.map((s, i) => ({
             label: `Blogger ${i + 1}`,
-            url: `${DA}/?proxy=${encodeURIComponent(s.url)}`,
+            url: `${workerProxy}/?proxy=${encodeURIComponent(s.url)}`,
             directUrl: s.url,
+            origin: originLabel,
           })),
         };
       }
@@ -163,50 +301,100 @@ export const pickBestDriveASource = async (results: unknown[]): Promise<DriveARe
       sources: iframes.map((r, i) => ({
         label: r.label ?? `Opção ${i + 1}`,
         url: r.url!,
+        origin: originLabel,
       })),
     };
   }
 
-  throw new Error('Nenhuma fonte válida encontrada no DriveA');
+  throw new Error('Nenhuma fonte válida encontrada');
 };
+
+// ── Main loader (tries all sources) ───────────────────────────────────────────
 
 export const loadDriveA = async (
   anime: AnimeInfo,
   ep: number,
   isDub: boolean,
-): Promise<{ success: true; sources: DriveASource[]; type: 'mp4' | 'iframe'; embedUrl?: string } | { success: false; error: string }> => {
+): Promise<
+  | { success: true; sources: DriveASource[]; type: 'mp4' | 'iframe'; embedUrl?: string }
+  | { success: false; error: string }
+> => {
   try {
-    const adResult = await resolveDriveA(anime, ep, isDub);
-    const picked = await pickBestDriveASource(adResult.results);
+    // Run all three sources in parallel
+    const [adResult, aqResults, atResults] = await Promise.allSettled([
+      resolveDriveA(anime, ep, isDub),
+      resolveAnimeQ(anime, ep, isDub),
+      resolveAniTube(anime, ep, isDub),
+    ]);
 
-    if (picked.type === 'mp4') {
-      let sources = picked.sources;
-      if (isDub) {
-        sources = sources.map(s => {
-          // Prefer directUrl; if absent, decode it from the proxy URL parameter
-          let rawDirect = s.directUrl;
-          if (!rawDirect) {
-            const proxyParam = s.url.split('/?proxy=')[1];
-            if (proxyParam) {
-              try { rawDirect = decodeURIComponent(proxyParam); } catch { rawDirect = proxyParam; }
-            }
-          }
-          const dubUrl = toDubUrl(rawDirect ?? s.url);
-          return {
-            ...s,
-            directUrl: dubUrl,
-            url: `${DA}/?proxy=${dubUrl}`,
-          };
-        });
+    const allSources: DriveASource[] = [];
+    let dominantType: 'mp4' | 'iframe' = 'iframe';
+    let embedUrl: string | undefined;
+
+    const processResult = async (
+      rawResults: RawResult[],
+      originLabel: string,
+    ) => {
+      try {
+        const picked = await pickBestDriveASource(rawResults, originLabel);
+        if (picked.type === 'mp4') {
+          dominantType = 'mp4';
+          allSources.push(...picked.sources);
+        } else if (picked.type === 'iframe') {
+          if (!embedUrl) embedUrl = picked.embedUrl ?? picked.sources[0]?.url;
+          allSources.push(...picked.sources);
+        }
+      } catch {
+        // skip this source
       }
-      return { success: true, sources, type: 'mp4' };
+    };
+
+    // Process in priority order: AnimesDrive → AnimeQ → AniTube
+    if (adResult.status === 'fulfilled') {
+      await processResult(adResult.value.results as RawResult[], 'AnimesDrive');
+    }
+    if (aqResults.status === 'fulfilled' && aqResults.value) {
+      await processResult(aqResults.value, 'AnimeQ');
+    }
+    if (atResults.status === 'fulfilled' && atResults.value) {
+      await processResult(atResults.value, 'AniTube');
     }
 
-    if (picked.type === 'iframe') {
-      return { success: true, type: 'iframe', embedUrl: picked.embedUrl, sources: picked.sources };
+    if (allSources.length === 0) {
+      const errors = [adResult, aqResults, atResults]
+        .filter(r => r.status === 'rejected')
+        .map(r => (r as PromiseRejectedResult).reason?.message ?? 'erro desconhecido')
+        .join('; ');
+      return {
+        success: false,
+        error: `Nenhuma fonte encontrada. ${errors}`,
+      };
     }
 
-    return { success: false, error: 'Tipo de fonte desconhecido' };
+    // Apply dub URL transform for MP4 sources
+    if (isDub && dominantType === 'mp4') {
+      const transformed = allSources.map(s => {
+        if (!s.url.includes('proxy=') && !s.directUrl) return s;
+        let rawDirect = s.directUrl;
+        if (!rawDirect) {
+          const proxyParam = s.url.split('/?proxy=')[1];
+          if (proxyParam) {
+            try { rawDirect = decodeURIComponent(proxyParam); } catch { rawDirect = proxyParam; }
+          }
+        }
+        if (!rawDirect) return s;
+        const dubUrl = toDubUrl(rawDirect);
+        const workerBase = s.origin === 'AnimeQ' ? AQ : s.origin === 'AniTube' ? AT : DA;
+        return {
+          ...s,
+          directUrl: dubUrl,
+          url: `${workerBase}/?proxy=${dubUrl}`,
+        };
+      });
+      return { success: true, sources: transformed, type: dominantType };
+    }
+
+    return { success: true, sources: allSources, type: dominantType, embedUrl };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[DriveA] Erro:', msg);
