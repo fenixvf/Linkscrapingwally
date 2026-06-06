@@ -350,6 +350,21 @@ export const loadDriveA = async (
 > => {
   try {
     const { atDirectSlug } = options;
+    const hasTitle = anime.title.trim().length > 0;
+
+    // When only a direct AniTube URL is given (no title), skip AnimesDrive/AnimeQ entirely.
+    // They require a title to build candidates and will always fail with an empty string.
+    if (atDirectSlug && !hasTitle) {
+      const results = await resolveAniTubeDirect(atDirectSlug);
+      if (!results || results.length === 0) {
+        return {
+          success: false,
+          error: `AniTube: nenhuma fonte encontrada para "${atDirectSlug}". Verifique se a URL do episódio está correta.`,
+        };
+      }
+      const picked = await pickBestDriveASource(results, 'AniTube');
+      return { success: true, sources: picked.sources, type: picked.type, embedUrl: picked.embedUrl };
+    }
 
     // Build AniTube promise: prefer direct slug if provided, otherwise auto-discover
     const aniTubePromise = atDirectSlug
@@ -409,9 +424,13 @@ export const loadDriveA = async (
         .filter(r => r.status === 'rejected')
         .map(r => (r as PromiseRejectedResult).reason?.message ?? 'erro desconhecido')
         .join('; ');
+      // If AniTube direct was used but returned null (status fulfilled, value null)
+      const atNote = atDirectSlug && atResults.status === 'fulfilled' && !atResults.value
+        ? `AniTube: nenhuma fonte para "${atDirectSlug}". `
+        : '';
       return {
         success: false,
-        error: `Nenhuma fonte encontrada. ${errors}`,
+        error: `${atNote}Nenhuma fonte encontrada. ${errors}`.trim(),
       };
     }
 
