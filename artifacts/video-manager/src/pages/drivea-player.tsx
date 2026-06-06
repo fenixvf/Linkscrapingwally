@@ -41,6 +41,7 @@ import {
   Loader2,
   ExternalLink,
   Film,
+  Globe,
   Tv,
   ChevronDown,
   ChevronUp,
@@ -74,6 +75,7 @@ export default function DriveAPlayerPage() {
   const [episode, setEpisode] = useState("1");
   const [animeType, setAnimeType] = useState("TV");
   const [isDub, setIsDub] = useState(false);
+  const [atDirectSlug, setAtDirectSlug] = useState("");
   const [selectedSource, setSelectedSource] = useState(0);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showCandidates, setShowCandidates] = useState(false);
@@ -123,7 +125,9 @@ export default function DriveAPlayerPage() {
     setSelectedSource(0);
     setVideoError(false);
 
-    const res = await loadDriveA(animeInfo, ep, isDub);
+    const res = await loadDriveA(animeInfo, ep, isDub, {
+      atDirectSlug: atDirectSlug.trim() || undefined,
+    });
     if (!res.success) {
       setLoadState("error");
       setErrorMsg(res.error);
@@ -282,22 +286,56 @@ export default function DriveAPlayerPage() {
               Títulos alternativos (opcional)
             </button>
             {showAdvanced && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Título em inglês</Label>
-                  <Input
-                    placeholder="Ex: Re:Zero - Starting Life in Another World"
-                    value={titleEn}
-                    onChange={(e) => setTitleEn(e.target.value)}
-                  />
+              <div className="space-y-3 mt-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Título em inglês</Label>
+                    <Input
+                      placeholder="Ex: Re:Zero - Starting Life in Another World"
+                      value={titleEn}
+                      onChange={(e) => setTitleEn(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Título em português</Label>
+                    <Input
+                      placeholder="Ex: Re:Zero"
+                      value={titlePt}
+                      onChange={(e) => setTitlePt(e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Título em português</Label>
+
+                {/* AniTube direct slug override */}
+                <div className="space-y-1.5 border border-cyan-500/20 bg-cyan-500/5 rounded-md p-3">
+                  <Label className="text-xs flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400">
+                    <Globe className="w-3 h-3" />
+                    Slug direto do AniTube (override)
+                  </Label>
                   <Input
-                    placeholder="Ex: Re:Zero"
-                    value={titlePt}
-                    onChange={(e) => setTitlePt(e.target.value)}
+                    placeholder="Ex: 939915b  ou  https://www.anitube.zip/939915b/"
+                    value={atDirectSlug}
+                    onChange={(e) => {
+                      const val = e.target.value.trim();
+                      // Accept full URL or bare slug
+                      try {
+                        const url = new URL(val.startsWith("http") ? val : "https://x/" + val);
+                        const seg = url.pathname.replace(/\/$/, "").split("/").filter(Boolean).pop();
+                        setAtDirectSlug(seg ?? val);
+                      } catch {
+                        setAtDirectSlug(val);
+                      }
+                    }}
                   />
+                  <p className="text-[11px] text-muted-foreground">
+                    Se preenchido, ignora a busca automática no AniTube e usa este slug diretamente.
+                    Cole a URL completa ou só o slug (ex: <code className="font-mono">939915b</code>).
+                  </p>
+                  {atDirectSlug && (
+                    <p className="text-[11px] text-cyan-600 dark:text-cyan-400 font-mono">
+                      → https://www.anitube.zip/{atDirectSlug}/
+                    </p>
+                  )}
                 </div>
               </div>
             )}

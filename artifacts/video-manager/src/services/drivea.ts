@@ -183,6 +183,19 @@ const resolveAnimeQ = async (
   return null;
 };
 
+// ── AniTube Direct (slug direto da página do episódio) ────────────────────────
+
+export const resolveAniTubeDirect = async (slug: string): Promise<RawResult[] | null> => {
+  const pageUrl = `${AT_BASE}/${slug}/`;
+  console.log('[AniTube Direct] Testando slug:', slug, '→', pageUrl);
+  const found = await probeWorker(AT, pageUrl, 15000);
+  if (found) {
+    console.log('[AniTube Direct] ✅ Encontrado:', slug);
+    return found.results;
+  }
+  return null;
+};
+
 // ── AniTube ────────────────────────────────────────────────────────────────────
 
 const slugifyAT = (s: string): string =>
@@ -315,21 +328,33 @@ const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
     new Promise<T>(resolve => setTimeout(() => resolve(fallback), ms)),
   ]);
 
+export interface LoadDriveAOptions {
+  atDirectSlug?: string;
+}
+
 export const loadDriveA = async (
   anime: AnimeInfo,
   ep: number,
   isDub: boolean,
+  options: LoadDriveAOptions = {},
 ): Promise<
   | { success: true; sources: DriveASource[]; type: 'mp4' | 'iframe'; embedUrl?: string }
   | { success: false; error: string }
 > => {
   try {
+    const { atDirectSlug } = options;
+
+    // Build AniTube promise: prefer direct slug if provided, otherwise auto-discover
+    const aniTubePromise = atDirectSlug
+      ? resolveAniTubeDirect(atDirectSlug)
+      : resolveAniTube(anime, ep, isDub);
+
     // Run all three sources in parallel, with a 25s global ceiling
     const [adResult, aqResults, atResults] = await withTimeout(
       Promise.allSettled([
         resolveDriveA(anime, ep, isDub),
         resolveAnimeQ(anime, ep, isDub),
-        resolveAniTube(anime, ep, isDub),
+        aniTubePromise,
       ]),
       25000,
       [
